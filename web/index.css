@@ -1,0 +1,3 @@
+.root-container > canvas.render {
+    border: 1px solid gray;
+}
