@@ -2,6 +2,7 @@ import { Interactor } from './interactor.js';
 
 export class PointsManager {
     constructor(canvasElement, points) {
+        this._canvasElement = canvasElement;
         this.points = points ?? [];
 
         this._isMultiSelecting = false;
@@ -164,8 +165,8 @@ export class PointsManager {
         } else {
             for (const point of this.points) {
                 if (point.isMovable && point.isSelected) {
-                    point._x = point._xAtPointerDown + e.xMoveDelta;
-                    point._y = point._yAtPointerDown + e.yMoveDelta;
+                    point._x = this._constrainX(point._xAtPointerDown + e.xMoveDelta);
+                    point._y = this._constrainY(point._yAtPointerDown + e.yMoveDelta);
                 }
             }
         }
@@ -185,6 +186,16 @@ export class PointsManager {
 
     _onPointerUp(e) {
         this._isMultiSelecting = false;
+    }
+
+    _constrainX(x) {
+        const halfWidth = this._canvasElement.clientWidth / 2;
+        return Math.max(-halfWidth, Math.min(x, halfWidth));
+    }
+
+    _constrainY(y) {
+        const halfHeight = this._canvasElement.clientHeight / 2;
+        return Math.max(-halfHeight, Math.min(y, halfHeight));
     }
 
     static isPointIsSelection(p, e) {
