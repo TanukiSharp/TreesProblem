@@ -6,10 +6,12 @@ export class Point {
         this._hoverRadius = hoverRadius;
         this._tags = tags;
 
-        this._isSelected = false;
+        this.isMovable = true;
+        this.isSelectable = true;
 
-        this._isMouseOver = false;
-        this._isMouseDown = false;
+        this._isSelected = false;
+        this._isPointerOver = false;
+        this._isPointerDown = false;
     }
 
     get x() {
@@ -25,7 +27,7 @@ export class Point {
     }
 
     get radius() {
-        if (this.isMouseOver) {
+        if (this.isPointerOver) {
             return this._hoverRadius;
         }
         return this._baseRadius;
@@ -43,11 +45,11 @@ export class Point {
         return this._isSelected;
     }
 
-    get isMouseOver() {
-        return this._isMouseOver;
+    get isPointerOver() {
+        return this._isPointerOver;
     }
 
-    get isMouseDown() {
-        return this._isMouseDown;
+    get isPointerDown() {
+        return this._isPointerDown;
     }
 }

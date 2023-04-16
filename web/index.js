@@ -69,7 +69,7 @@ class PointsRenderer {
         let renderAtLast = null;
 
         for (const point of this._points) {
-            if (point.isMouseOver) {
+            if (point.isPointerOver) {
                 renderAtLast = point;
             } else {
                 this._pointRenderer.render(point);
@@ -125,8 +125,11 @@ class Renderer {
 const main = function() {
     const canvasElement = document.querySelector('.root-container > canvas.render');
 
+    const centerPoint = new Point(0, 0, 5, 9, [POINT_TYPE_TREE]);
+    centerPoint.isSelectable = false;
+
     const pointsManager = new PointsManager(canvasElement, [
-        new Point(0, 0, 5, 9, [POINT_TYPE_TREE]),
+        centerPoint,
         new Point(50, 50, 5, 9, [POINT_TYPE_TREE]),
         new Point(50, 30, 5, 9, [POINT_TYPE_TREE]),
         new Point(30, 50, 5, 9, [POINT_TYPE_TREE]),

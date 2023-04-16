@@ -5,7 +5,7 @@ export class SelectionRenderer {
     }
 
     render() {
-        if (this._pointsManager.isSelecting === false) {
+        if (this._pointsManager.isMultiSelecting === false) {
             return;
         }
 
@@ -16,8 +16,8 @@ export class SelectionRenderer {
         ctx.rect(
             this._pointsManager.pointerDownX,
             this._pointsManager.pointerDownY,
-            this._pointsManager.selectionWidth,
-            this._pointsManager.selectionHeight
+            this._pointsManager.multiSelectionWidth,
+            this._pointsManager.multiSelectionHeight
         );
 
         ctx.fillStyle = 'rgba(0, 178, 255, 0.25)';

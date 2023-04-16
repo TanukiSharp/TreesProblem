@@ -1,10 +1,12 @@
+import { Interactor } from './interactor.js';
+
 export class PointsManager {
     constructor(canvasElement, points) {
         this.points = points ?? [];
 
-        this._isSelecting = false;
-        this._selectionWidth = null;
-        this._selectionHeight = null;
+        this._isMultiSelecting = false;
+        this._multiSelectionWidth = 0;
+        this._multiSelectionHeight = 0;
 
         this._dragWindowX = 6;
         this._dragWindowY = 6;
@@ -17,9 +19,20 @@ export class PointsManager {
         this._hoveredPoint = null;
         this._isDragging = false;
 
-        canvasElement.addEventListener('pointerdown', e => this._onPointerDown(PointsManager.transformPointerEvent(e)));
-        canvasElement.addEventListener('pointermove', e => this._onPointerMove(PointsManager.transformPointerEvent(e)));
-        canvasElement.addEventListener('pointerup', e => this._onPointerUp(PointsManager.transformPointerEvent(e)));
+        this._interactor = new Interactor(
+            canvasElement,
+            x => x - (canvasElement.clientWidth / 2),
+            y => y - (canvasElement.clientHeight / 2),
+            {
+                'pointerdown-begin': e => this._onPointerDown(e),
+                'nodrag-pointermove': e => this._onNoDragPointerMove(e),
+                'drag-start': e => this._onDragStart(e),
+                'drag-move': e => this._onDragMove(e),
+                'drag-finish': e => this._onDragFinish(e),
+                'click': e => this._onClick(e),
+                'pointerup-begin': e => this._onPointerUp(e),
+            }
+        );
     }
 
     get pointerDownX() {
@@ -30,16 +43,16 @@ export class PointsManager {
         return this._pointerDownY;
     }
 
-    get isSelecting() {
-        return this._isSelecting;
+    get isMultiSelecting() {
+        return this._isMultiSelecting;
     }
 
-    get selectionWidth() {
-        return this._selectionWidth;
+    get multiSelectionWidth() {
+        return this._multiSelectionWidth;
     }
 
-    get selectionHeight() {
-        return this._selectionHeight;
+    get multiSelectionHeight() {
+        return this._multiSelectionHeight;
     }
 
     static transformPointerEvent(e) {
@@ -48,11 +61,15 @@ export class PointsManager {
         return e;
     }
 
-    static computeDistance(x1, y1, x2, y2) {
+    static computeSquaredDistance(x1, y1, x2, y2) {
         const deltaX = x2 - x1;
         const deltaY = y2 - y1;
 
-        return Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+        return deltaX * deltaX + deltaY * deltaY;
+    }
+
+    static computeDistance(x1, y1, x2, y2) {
+        return Math.sqrt(PointsManager.computeSquaredDistance(x1, y1, x2, y2));
     }
 
     _findPointAt(x, y, radiusType) {
@@ -76,47 +93,47 @@ export class PointsManager {
     }
 
     _onPointerDown(e) {
-        this._isPointerDown = true;
-
         this._pointerDownX = e.tx;
         this._pointerDownY = e.ty;
 
         this._pointAtPointerDown = this._findPointAt(e.tx, e.ty, 'radius');
 
+        this._isMultiSelecting = this._pointAtPointerDown === null;
+
         if (this._pointAtPointerDown === null) {
-            this._isSelecting = true;
-            this._selectionWidth = 0;
-            this._selectionHeight = 0;
-        }
-    }
+            this._multiSelectionWidth = 0;
+            this._multiSelectionHeight = 0;
+            for (const point of this.points) {
+                point._isSelected = false;
+            }
+        } else {
+            if (this._pointAtPointerDown._isSelected === false) {
+                for (const point of this.points) {
+                    point._isSelected = false;
+                }
 
-    _isPointIsSelection(p) {
-        return (
-            p.x >= this._pointerDownX &&
-            p.y >= this._pointerDownY &&
-            p.x <= (this._pointerDownX + this._selectionWidth) &&
-            p.y <= (this._pointerDownY + this._selectionHeight)
-        );
-    }
+                // TBD: Should also test isMovbable ?
+                // TBD: Should deselect all only is point is selectable and movable ?
 
-    _onPointerMove(e) {
-        if (this._isPointerDown) {
-            if (this._isSelecting) {
-                this._selectionWidth = e.tx - this._pointerDownX;
-                this._selectionHeight = e.ty - this._pointerDownY;
+                if (this._pointAtPointerDown.isSelectable) {
+                    this._pointAtPointerDown._isSelected = true;
+                }
             }
 
             for (const point of this.points) {
-                point._isSelected = this._isPointIsSelection(point);
+                if (point.isMovable && point.isSelected) {
+                    point._xAtPointerDown = point.x;
+                    point._yAtPointerDown = point.y;
+                }
             }
-
-            return;
         }
+    }
 
+    _onNoDragPointerMove(e) {
         if (this._hoveredPoint !== null) {
             const distance = PointsManager.computeDistance(e.tx, e.ty, this._hoveredPoint.x, this._hoveredPoint.y);
             if (distance > this._hoveredPoint.radius) {
-                this._hoveredPoint._isMouseOver = false;
+                this._hoveredPoint._isPointerOver = false;
                 this._hoveredPoint = null;
             }
         }
@@ -126,33 +143,62 @@ export class PointsManager {
 
             if (closestPoint !== null) {
                 this._hoveredPoint = closestPoint;
-                this._hoveredPoint._isMouseOver = true;
+                this._hoveredPoint._isPointerOver = true;
             }
         }
+    }
 
-        if (this._pointerDownX !== null && this._pointerDownY !== null) {
-            const deltaX = Math.abs(e.tx - this._pointerDownX);
-            const deltaY = Math.abs(e.ty - this._pointerDownY);
-
-            if (deltaX > this._dragWindowX || deltaY > this._dragWindowY) {
-                this._isDragging = true;
-            }
-        }
-
-        if (this._isDragging) {
-            this._onDragMove(e);
-        }
+    _onDragStart(e) {
     }
 
     _onDragMove(e) {
+        if (this._isMultiSelecting) {
+            this._multiSelectionWidth = e.xMoveDelta;
+            this._multiSelectionHeight = e.yMoveDelta;
+
+            for (const point of this.points) {
+                if (point.isSelectable) {
+                    point._isSelected = PointsManager.isPointIsSelection(point, e);
+                }
+            }
+        } else {
+            for (const point of this.points) {
+                if (point.isMovable && point.isSelected) {
+                    point._x = point._xAtPointerDown + e.xMoveDelta;
+                    point._y = point._yAtPointerDown + e.yMoveDelta;
+                }
+            }
+        }
+    }
+
+    _onDragFinish(e) {
+    }
+
+    _onClick(e) {
+        if (this._pointAtPointerDown !== null) {
+            for (const point of this.points) {
+                point._isSelected = false;
+            }
+            this._pointAtPointerDown._isSelected = true;
+        }
     }
 
     _onPointerUp(e) {
-        this._isSelecting = false;
-        this._isPointerDown = false;
-        this._pointAtPointerDown = null;
-        this._pointerDownX = null;
-        this._pointerDownY = null;
-        this._isDragging = false;
+        this._isMultiSelecting = false;
+    }
+
+    static isPointIsSelection(p, e) {
+        const x1 = e.xAtPointerDown;
+        const y1 = e.yAtPointerDown;
+
+        const x2 = e.xAtPointerDown + e.xMoveDelta;
+        const y2 = e.yAtPointerDown + e.yMoveDelta;
+
+        return (
+            p.x >= Math.min(x1, x2) &&
+            p.y >= Math.min(y1, y2) &&
+            p.x <= Math.max(x1, x2) &&
+            p.y <= Math.max(y1, y2)
+        );
     }
 }
