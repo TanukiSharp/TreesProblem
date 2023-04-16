@@ -44,6 +44,8 @@ export class Interactor {
     }
 
     _onPointerDown(e) {
+        e.target.setPointerCapture(e.pointerId);
+
         e.tx = this._xTransform(e.offsetX);
         e.ty = this._yTransform(e.offsetY);
 
@@ -95,6 +97,8 @@ export class Interactor {
     }
 
     _onPointerUp(e) {
+        e.target.releasePointerCapture(e.pointerId);
+
         e.tx = this._xTransform(e.offsetX);
         e.ty = this._yTransform(e.offsetY);
 
