@@ -12,10 +12,13 @@ export class Interactor {
         this._downY = null;
 
         this._isDragging = false;
+        this._isCancelled = false;
 
         htmlElement.addEventListener('pointerdown', e => this._onPointerDown(e));
         htmlElement.addEventListener('pointermove', e => this._onPointerMove(e));
         htmlElement.addEventListener('pointerup', e => this._onPointerUp(e));
+
+        document.addEventListener('keydown', e => this._onKeyDown(e));
     }
 
     _callHandler(type, e) {
@@ -43,7 +46,18 @@ export class Interactor {
         }
     }
 
+    _onKeyDown(e) {
+        if (e.key === 'Escape') {
+            if (this._isCancelled === false) {
+                this._isCancelled = true;
+                this._callHandler('cancelled', e);
+            }
+        }
+    }
+
     _onPointerDown(e) {
+        this._isCancelled = false;
+
         e.target.setPointerCapture(e.pointerId);
 
         e.tx = this._xTransform(e.offsetX);
@@ -59,6 +73,10 @@ export class Interactor {
     }
 
     _onPointerMove(e) {
+        if (this._isCancelled) {
+            return;
+        }
+
         e.tx = this._xTransform(e.offsetX);
         e.ty = this._yTransform(e.offsetY);
 
@@ -99,6 +117,12 @@ export class Interactor {
     _onPointerUp(e) {
         e.target.releasePointerCapture(e.pointerId);
 
+        if (this._isCancelled) {
+            this._resetPointerState();
+            this._isCancelled = false;
+            return;
+        }
+
         e.tx = this._xTransform(e.offsetX);
         e.ty = this._yTransform(e.offsetY);
 
@@ -109,15 +133,19 @@ export class Interactor {
 
         if (this._isDragging) {
             this._callHandler('drag-finish', e);
-            this._isDragging = false;
         } else {
             this._callHandler('click', e);
         }
 
+        this._resetPointerState();
+
+        this._callHandler('pointerup-end', e);
+    }
+
+    _resetPointerState() {
+        this._isDragging = false;
         this._isDown = false;
         this._downX = null;
         this._downY = null;
-
-        this._callHandler('pointerup-end', e);
     }
 }

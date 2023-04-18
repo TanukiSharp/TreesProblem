@@ -32,6 +32,7 @@ export class PointsManager {
                 'drag-finish': e => this._onDragFinish(e),
                 'click': e => this._onClick(e),
                 'pointerup-begin': e => this._onPointerUp(e),
+                'cancelled': e => this._onCancelled(e),
             }
         );
     }
@@ -91,6 +92,16 @@ export class PointsManager {
         }
 
         return bestPoint;
+    }
+
+    _onCancelled(e) {
+        for (const point of this.points) {
+            if (point.isMovable && point.isSelected) {
+                point._x = point._xAtPointerDown;
+                point._y = point._yAtPointerDown;
+                point._isPointerOver = false;
+            }
+        }
     }
 
     _onPointerDown(e) {
