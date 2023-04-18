@@ -115,20 +115,35 @@ export class PointsManager {
         if (this._pointAtPointerDown === null) {
             this._multiSelectionWidth = 0;
             this._multiSelectionHeight = 0;
-            for (const point of this.points) {
-                point._isSelected = false;
-            }
-        } else {
-            if (this._pointAtPointerDown._isSelected === false) {
+
+            if (e.ctrlKey === false) {
                 for (const point of this.points) {
                     point._isSelected = false;
                 }
+            } else {
+                for (const point of this.points) {
+                    point._isInSelection = false;
+                }
+            }
+        } else {
+            if (e.ctrlKey) {
+                // No toggle but selection in this very special case.
+                // Because this can lead to weird case where two points are selected,
+                // and toggling off a point at the moment of dragging, meaning moving the
+                // other point with mouse being far apart from it.
+                this._pointAtPointerDown._isSelected = true;
+            } else {
+                if (this._pointAtPointerDown._isSelected === false) {
+                    for (const point of this.points) {
+                        point._isSelected = false;
+                    }
 
-                // TBD: Should also test isMovbable ?
-                // TBD: Should deselect all only is point is selectable and movable ?
+                    // TBD: Should also test isMovbable ?
+                    // TBD: Should deselect all only if point is selectable and movable ?
 
-                if (this._pointAtPointerDown.isSelectable) {
-                    this._pointAtPointerDown._isSelected = true;
+                    if (this._pointAtPointerDown.isSelectable) {
+                        this._pointAtPointerDown._isSelected = true;
+                    }
                 }
             }
 
@@ -168,9 +183,23 @@ export class PointsManager {
             this._multiSelectionWidth = e.xMoveDelta;
             this._multiSelectionHeight = e.yMoveDelta;
 
-            for (const point of this.points) {
-                if (point.isSelectable) {
-                    point._isSelected = PointsManager.isPointIsSelection(point, e);
+            if (e.ctrlKey) {
+                for (const point of this.points) {
+                    if (point.isSelectable) {
+                        const isInSelection = PointsManager.isPointIsSelection(point, e);
+
+                        if (isInSelection != point._isInSelection) {
+                            point._isSelected = !point._isSelected;
+                        }
+
+                        point._isInSelection = isInSelection;
+                    }
+                }
+            } else {
+                for (const point of this.points) {
+                    if (point.isSelectable) {
+                        point._isSelected = PointsManager.isPointIsSelection(point, e);
+                    }
                 }
             }
         } else {
@@ -187,7 +216,7 @@ export class PointsManager {
     }
 
     _onClick(e) {
-        if (this._pointAtPointerDown !== null) {
+        if (this._pointAtPointerDown !== null && e.ctrlKey === false) {
             for (const point of this.points) {
                 point._isSelected = false;
             }
