@@ -23,18 +23,17 @@ export class PointsManager {
         this._interactor = new Interactor(
             canvasElement,
             x => x - (canvasElement.clientWidth / 2),
-            y => y - (canvasElement.clientHeight / 2),
-            {
-                'pointerdown-begin': e => this._onPointerDown(e),
-                'nodrag-pointermove': e => this._onNoDragPointerMove(e),
-                'drag-start': e => this._onDragStart(e),
-                'drag-move': e => this._onDragMove(e),
-                'drag-finish': e => this._onDragFinish(e),
-                'click': e => this._onClick(e),
-                'pointerup-begin': e => this._onPointerUp(e),
-                'cancelled': e => this._onCancelled(e),
-            }
+            y => y - (canvasElement.clientHeight / 2)
         );
+
+        this._interactor.addEventListener('pointerdown-begin', e => this._onPointerDown(e.detail));
+        this._interactor.addEventListener('nodrag-pointermove', e => this._onNoDragPointerMove(e.detail));
+        this._interactor.addEventListener('drag-start', e => this._onDragStart(e.detail));
+        this._interactor.addEventListener('drag-move', e => this._onDragMove(e.detail));
+        this._interactor.addEventListener('drag-finish', e => this._onDragFinish(e.detail));
+        this._interactor.addEventListener('click', e => this._onClick(e.detail));
+        this._interactor.addEventListener('pointerup-begin', e => this._onPointerUp(e.detail));
+        this._interactor.addEventListener('cancelled', e => this._onCancelled(e.detail));
     }
 
     get pointerDownX() {

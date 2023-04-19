@@ -1,12 +1,13 @@
 const DRAG_WINDOW_WIDTH = 6;
 const DRAG_WINDOW_HEIGHT = 6;
 
-export class Interactor {
-    constructor(htmlElement, xTransform, yTransform, handlers) {
+export class Interactor extends EventTarget {
+    constructor(htmlElement, xTransform, yTransform) {
+        super();
+
         this._htmlElement = htmlElement;
         this._xTransform = xTransform;
         this._yTransform = yTransform;
-        this._handlers = handlers;
 
         this._downX = null;
         this._downY = null;
@@ -22,28 +23,7 @@ export class Interactor {
     }
 
     _callHandler(type, e) {
-        if (!this._handlers) {
-            return;
-        }
-
-        const h = this._handlers[type];
-
-        if (!h) {
-            return;
-        }
-
-        if (typeof h === 'function') {
-            h(e);
-            return;
-        }
-
-        if (h.length > 0) {
-            for (const handler of h) {
-                if (typeof handler === 'function') {
-                    handler(e);
-                }
-            }
-        }
+        this.dispatchEvent(new CustomEvent(type, { detail: e }));
     }
 
     _onKeyDown(e) {
