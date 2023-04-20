@@ -1,7 +1,9 @@
 import { Interactor } from './interactor.js';
 
-export class PointsManager {
+export class PointsManager extends EventTarget {
     constructor(canvasElement, points) {
+        super();
+
         this._canvasElement = canvasElement;
         this.points = points ?? [];
 
@@ -36,9 +38,20 @@ export class PointsManager {
         this._interactor.addEventListener('cancelled', e => this._onCancelled(e.detail));
     }
 
-    movePoint(p, x, y) {
+    _movePoint(p, x, y, sourceType) {
         p._x = this._constrainX(x);
         p._y = this._constrainY(y);
+
+        this.dispatchEvent(new CustomEvent('pointmove', {
+            detail: {
+                point: p,
+                sourceType: sourceType,
+            }
+        }));
+    }
+
+    movePoint(p, x, y) {
+        this._movePoint(p, x, y, 'user');
     }
 
     get pointerDownX() {
@@ -227,10 +240,11 @@ export class PointsManager {
         } else {
             for (const point of this.points) {
                 if (point.isMovable && point.isSelected) {
-                    this.movePoint(
+                    this._movePoint(
                         point,
                         point._xAtPointerDown + e.xMoveDelta,
-                        point._yAtPointerDown + e.yMoveDelta
+                        point._yAtPointerDown + e.yMoveDelta,
+                        'event'
                     );
                 }
             }
