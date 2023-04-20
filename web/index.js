@@ -109,7 +109,7 @@ class CameraRenderer {
     render() {
         const ctx = this._ctx;
 
-        const alphaAngle = Math.atan2(this._alphaStart.y, this._alphaStart.x);
+        const alphaAngle = Math.atan2(this._alphaEnd.y, this._alphaEnd.x);
         const betaAngle = Math.atan2(this._beta.y, this._beta.x);
 
         const lineLength = Math.max(ctx.canvas.clientWidth, ctx.canvas.clientHeight);
