@@ -193,6 +193,124 @@ class Renderer {
     }
 }
 
+class CameraHandler {
+    constructor(pointsManager) {
+        this._pointsManager = pointsManager;
+
+        this._alphaStart = null;
+        this._alphaEnd = null;
+        this._beta = null;
+
+        for (const point of pointsManager.points) {
+            if (point.tags.includes(POINT_TYPE_ALPHA_START)) {
+                this._alphaStart = point;
+            } else if (point.tags.includes(POINT_TYPE_ALPHA_END)) {
+                this._alphaEnd = point;
+            } else if (point.tags.includes(POINT_TYPE_BETA)) {
+                this._beta = point;
+            }
+        }
+
+        if (this._alphaStart === null || this._beta === null) {
+            throw new Error('Alpha start, alpha end and/or beta point(s) is/are missing.');
+        }
+
+        this._resetStates();
+
+        this._onAlphaStartMovedEnter();
+        this._onAlphaStartMovedUpdate();
+    }
+
+    _resetStates() {
+        this._alphaStartMoveState = 'enter';
+        this._betaMoveState = 'enter';
+    }
+
+    static distance(x1, y1, x2, y2) {
+        const dx = x1 - x2;
+        const dy = y1 - y2;
+        return Math.sqrt(dx * dx + dy * dy);
+    }
+
+    static distanceToOrigin(p) {
+        return CameraHandler.distance(0, 0, p.x, p.y);
+    }
+
+    static computeAngle(p) {
+        return Math.atan2(p.y, p.x);
+    }
+
+    _computeAnglesAndLengths() {
+        this._alphaStartAngle = CameraHandler.computeAngle(this._alphaStart);
+        this._alphaStartLength = CameraHandler.distanceToOrigin(this._alphaStart);
+
+        this._alphaEndAngle = CameraHandler.computeAngle(this._alphaEnd);
+        this._alphaEndLength = CameraHandler.distanceToOrigin(this._alphaEnd);
+
+        this._betaAngle = CameraHandler.computeAngle(this._beta);
+        this._betaLength = CameraHandler.distanceToOrigin(this._beta);
+    }
+
+    _onAlphaStartMovedEnter(e) {
+        this._computeAnglesAndLengths();
+    }
+
+    _onAlphaStartMovedUpdate(e) {
+        const alphaStartAngle = CameraHandler.computeAngle(this._alphaStart);
+
+        const newBetaAngle = alphaStartAngle;
+        const newBetaX = Math.cos(newBetaAngle) * this._betaLength;
+        const newBetaY = Math.sin(newBetaAngle) * this._betaLength;
+
+        this._pointsManager.movePoint(this._beta, newBetaX, newBetaY);
+    }
+
+    _onBetaMovedEnter() {
+        this._computeAnglesAndLengths();
+    }
+
+    _onBetaMovedUpdate() {
+        const betaAngle = CameraHandler.computeAngle(this._beta);
+
+        const newAlphaStartAngle = betaAngle;
+        const newAlphaStartX = Math.cos(newAlphaStartAngle) * this._alphaStartLength;
+        const newAlphaStartY = Math.sin(newAlphaStartAngle) * this._alphaStartLength;
+
+        const newAlphaEndAngle = this._alphaEndAngle + (betaAngle - this._betaAngle);
+        const newAlphaEndX = Math.cos(newAlphaEndAngle) * this._alphaEndLength;
+        const newAlphaEndY = Math.sin(newAlphaEndAngle) * this._alphaEndLength;
+
+        this._pointsManager.movePoint(this._alphaStart, newAlphaStartX, newAlphaStartY);
+        this._pointsManager.movePoint(this._alphaEnd, newAlphaEndX, newAlphaEndY);
+    }
+
+    onPointMoved(e) {
+        if (e.detail.sourceType !== 'event') {
+            return;
+        }
+
+        if (e.detail.point.tags.includes(POINT_TYPE_ALPHA_START)) {
+            if (this._alphaStartMoveState === 'enter') {
+                this._onAlphaStartMovedEnter();
+                this._alphaStartMoveState = 'update';
+            } else if (this._alphaStartMoveState === 'update') {
+                this._onAlphaStartMovedUpdate();
+            }
+        } else if (e.detail.point.tags.includes(POINT_TYPE_BETA)) {
+            if (this._betaMoveState === 'enter') {
+                this._onBetaMovedEnter();
+                this._betaMoveState = 'update';
+            } else if (this._betaMoveState === 'update') {
+                this._onBetaMovedUpdate();
+            }
+        }
+    }
+
+    onPointMovedEnd() {
+        this._resetStates();
+    }
+}
+
 const main = function() {
     const canvasElement = document.querySelector('.root-container > canvas.render');
 
@@ -209,6 +327,11 @@ const main = function() {
         new Point(30, 50, { id: 1003, baseRadius: 7, hoverRadius: 11, tags: [POINT_TYPE_TREE] }),
         new Point(30, 30, { id: 1004, baseRadius: 7, hoverRadius: 11, tags: [POINT_TYPE_TREE] }),
     ]);
+
+    const cameraHandler = new CameraHandler(pointsManager);
+
+    pointsManager.addEventListener('pointmove', e => cameraHandler.onPointMoved(e));
+    canvasElement.addEventListener('pointerup', _ => cameraHandler.onPointMovedEnd());
 
     new Renderer(canvasElement, pointsManager);
 }
