@@ -1,11 +1,11 @@
-export class SelectionRenderer {
+export class LassoSelectionRenderer {
     constructor(ctx, pointsManager) {
         this._ctx = ctx;
         this._pointsManager = pointsManager;
     }
 
     render() {
-        if (this._pointsManager.isMultiSelecting === false) {
+        if (this._pointsManager.isLassoSelecting === false) {
             return;
         }
 
@@ -16,15 +16,15 @@ export class SelectionRenderer {
         ctx.rect(
             this._pointsManager.pointerDownX,
             this._pointsManager.pointerDownY,
-            this._pointsManager.multiSelectionWidth,
-            this._pointsManager.multiSelectionHeight
+            this._pointsManager.lassoSelectionWidth,
+            this._pointsManager.lassoSelectionHeight
         );
 
         ctx.fillStyle = 'rgba(0, 178, 255, 0.25)';
         ctx.fill();
 
         ctx.strokeStyle = '#c0c0c0';
-        ctx.strokeWidth = 1;
+        ctx.lineWidth = 1;
         ctx.stroke();
     }
 }

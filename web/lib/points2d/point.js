@@ -1,17 +1,28 @@
+const applyDefaultPointProperties = function(properties) {
+    properties.baseRadius ??= 5;
+    properties.hoverRadius ??= 9;
+    properties.tags ??= [];
+    properties.isSelectable ??= true;
+    properties.isMovable ??= true;
+    properties.isHoverable ??= true;
+
+    return properties;
+}
+
 export class Point {
-    constructor(x, y, baseRadius, hoverRadius, tags) {
+    constructor(x, y, properties) {
         this._x = x;
         this._y = y;
-        this._baseRadius = baseRadius;
-        this._hoverRadius = hoverRadius;
-        this._tags = tags;
-
-        this.isMovable = true;
-        this.isSelectable = true;
+        this._properties = applyDefaultPointProperties(properties);
 
         this._isSelected = false;
+        this._isInLassoSelection = false;
         this._isPointerOver = false;
         this._isPointerDown = false;
+    }
+
+    get id() {
+        return this._properties.id;
     }
 
     get x() {
@@ -23,26 +34,42 @@ export class Point {
     }
 
     get tags() {
-        return this._tags;
+        return this._properties.tags;
     }
 
     get radius() {
         if (this.isPointerOver) {
-            return this._hoverRadius;
+            return this._properties.hoverRadius;
         }
-        return this._baseRadius;
+        return this._properties.baseRadius;
     }
 
     get baseRadius() {
-        return this._baseRadius;
+        return this._properties.baseRadius;
     }
 
     get hoverRadius() {
-        return this._hoverRadius;
+        return this._properties.hoverRadius;
+    }
+
+    get isMovable() {
+        return this._properties.isMovable;
+    }
+
+    get isSelectable() {
+        return this._properties.isSelectable;
+    }
+
+    get isHoverable() {
+        return this._properties.isHoverable;
     }
 
     get isSelected() {
         return this._isSelected;
+    }
+
+    get isInLassoSelection() {
+        return this._isInLassoSelection;
     }
 
     get isPointerOver() {

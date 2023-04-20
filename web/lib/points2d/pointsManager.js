@@ -5,9 +5,9 @@ export class PointsManager {
         this._canvasElement = canvasElement;
         this.points = points ?? [];
 
-        this._isMultiSelecting = false;
-        this._multiSelectionWidth = 0;
-        this._multiSelectionHeight = 0;
+        this._isLassoSelecting = false;
+        this._lassoSelectionWidth = 0;
+        this._lassoSelectionHeight = 0;
 
         this._dragWindowX = 6;
         this._dragWindowY = 6;
@@ -36,6 +36,11 @@ export class PointsManager {
         this._interactor.addEventListener('cancelled', e => this._onCancelled(e.detail));
     }
 
+    movePoint(p, x, y) {
+        p._x = this._constrainX(x);
+        p._y = this._constrainY(y);
+    }
+
     get pointerDownX() {
         return this._pointerDownX;
     }
@@ -44,16 +49,16 @@ export class PointsManager {
         return this._pointerDownY;
     }
 
-    get isMultiSelecting() {
-        return this._isMultiSelecting;
+    get isLassoSelecting() {
+        return this._isLassoSelecting;
     }
 
-    get multiSelectionWidth() {
-        return this._multiSelectionWidth;
+    get lassoSelectionWidth() {
+        return this._lassoSelectionWidth;
     }
 
-    get multiSelectionHeight() {
-        return this._multiSelectionHeight;
+    get lassoSelectionHeight() {
+        return this._lassoSelectionHeight;
     }
 
     static transformPointerEvent(e) {
@@ -98,9 +103,23 @@ export class PointsManager {
             if (point.isMovable && point.isSelected) {
                 point._x = point._xAtPointerDown;
                 point._y = point._yAtPointerDown;
-                point._isPointerOver = false;
+                if (point.isHoverable) {
+                    point._isPointerOver = false;
+                }
             }
         }
+
+        this._isLassoSelecting = false;
+        this._lassoSelectionWidth = 0;
+        this._lassoSelectionHeight = 0;
+
+        this._isPointerDown = false;
+        this._pointerDownX = null;
+        this._pointerDownY = null;
+        this._pointAtPointerDown = null;
+
+        this._hoveredPoint = null;
+        this._isDragging = false;
     }
 
     _onPointerDown(e) {
@@ -109,11 +128,15 @@ export class PointsManager {
 
         this._pointAtPointerDown = this._findPointAt(e.tx, e.ty, 'radius');
 
-        this._isMultiSelecting = this._pointAtPointerDown === null;
+        if (this._pointAtPointerDown !== null) {
+            this._pointAtPointerDown._isPointerDown = true;
+        }
 
-        if (this._pointAtPointerDown === null) {
-            this._multiSelectionWidth = 0;
-            this._multiSelectionHeight = 0;
+        this._isLassoSelecting = this._pointAtPointerDown === null || this._pointAtPointerDown.isSelectable === false || this._pointAtPointerDown.isMovable === false;
+
+        if (this._isLassoSelecting) {
+            this._lassoSelectionWidth = 0;
+            this._lassoSelectionHeight = 0;
 
             if (e.ctrlKey === false) {
                 for (const point of this.points) {
@@ -121,7 +144,7 @@ export class PointsManager {
                 }
             } else {
                 for (const point of this.points) {
-                    point._isInSelection = false;
+                    point._isInLassoSelection = false;
                 }
             }
         } else {
@@ -130,7 +153,10 @@ export class PointsManager {
                 // Because this can lead to weird case where two points are selected,
                 // and toggling off a point at the moment of dragging, meaning moving the
                 // other point with mouse being far apart from it.
-                this._pointAtPointerDown._isSelected = true;
+
+                if (this._pointAtPointerDown.isSelectable) {
+                    this._pointAtPointerDown._isSelected = true;
+                }
             } else {
                 if (this._pointAtPointerDown._isSelected === false) {
                     for (const point of this.points) {
@@ -167,7 +193,7 @@ export class PointsManager {
         if (this._hoveredPoint === null) {
             const closestPoint = this._findPointAt(e.tx, e.ty, 'radius');
 
-            if (closestPoint !== null) {
+            if (closestPoint !== null && closestPoint.isHoverable) {
                 this._hoveredPoint = closestPoint;
                 this._hoveredPoint._isPointerOver = true;
             }
@@ -178,34 +204,34 @@ export class PointsManager {
     }
 
     _onDragMove(e) {
-        if (this._isMultiSelecting) {
-            this._multiSelectionWidth = e.xMoveDelta;
-            this._multiSelectionHeight = e.yMoveDelta;
+        if (this._isLassoSelecting) {
+            this._lassoSelectionWidth = e.xMoveDelta;
+            this._lassoSelectionHeight = e.yMoveDelta;
 
-            if (e.ctrlKey) {
-                for (const point of this.points) {
-                    if (point.isSelectable) {
-                        const isInSelection = PointsManager.isPointIsSelection(point, e);
-
-                        if (isInSelection != point._isInSelection) {
-                            point._isSelected = !point._isSelected;
-                        }
-
-                        point._isInSelection = isInSelection;
-                    }
+            for (const point of this.points) {
+                if (point.isSelectable === false) {
+                    continue;
                 }
-            } else {
-                for (const point of this.points) {
-                    if (point.isSelectable) {
-                        point._isSelected = PointsManager.isPointIsSelection(point, e);
+
+                const isInLassoSelection = PointsManager.isPointInLassoSelection(point, e);
+
+                if (isInLassoSelection != point._isInLassoSelection) {
+                    if (e.ctrlKey) {
+                        point._isSelected = !point._isSelected;
+                    } else {
+                        point._isSelected = isInLassoSelection;
                     }
+                    point._isInLassoSelection = isInLassoSelection;
                 }
             }
         } else {
             for (const point of this.points) {
                 if (point.isMovable && point.isSelected) {
-                    point._x = this._constrainX(point._xAtPointerDown + e.xMoveDelta);
-                    point._y = this._constrainY(point._yAtPointerDown + e.yMoveDelta);
+                    this.movePoint(
+                        point,
+                        point._xAtPointerDown + e.xMoveDelta,
+                        point._yAtPointerDown + e.yMoveDelta
+                    );
                 }
             }
         }
@@ -215,7 +241,7 @@ export class PointsManager {
     }
 
     _onClick(e) {
-        if (this._pointAtPointerDown !== null && e.ctrlKey === false) {
+        if (this._pointAtPointerDown !== null && this._pointAtPointerDown.isSelectable && e.ctrlKey === false) {
             for (const point of this.points) {
                 point._isSelected = false;
             }
@@ -224,7 +250,11 @@ export class PointsManager {
     }
 
     _onPointerUp(e) {
-        this._isMultiSelecting = false;
+        this._isLassoSelecting = false;
+
+        if (this._pointAtPointerDown !== null) {
+            this._pointAtPointerDown._isPointerDown = false;
+        }
     }
 
     _constrainX(x) {
@@ -237,7 +267,7 @@ export class PointsManager {
         return Math.max(-halfHeight, Math.min(y, halfHeight));
     }
 
-    static isPointIsSelection(p, e) {
+    static isPointInLassoSelection(p, e) {
         const x1 = e.xAtPointerDown;
         const y1 = e.yAtPointerDown;
 

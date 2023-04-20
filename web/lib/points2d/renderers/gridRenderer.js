@@ -9,15 +9,16 @@ export class GridRenderer {
         const halfWidth = ctx.canvas.clientWidth / 2;
         const halfHeight = ctx.canvas.clientHeight / 2;
 
-        ctx.beginPath();
+        ctx.strokeStyle = '#e0e0e0';
 
+        ctx.beginPath();
         ctx.moveTo(0, -halfHeight);
         ctx.lineTo(0, halfHeight);
+        ctx.stroke();
 
+        ctx.beginPath();
         ctx.moveTo(-halfWidth, 0);
         ctx.lineTo(halfWidth, 0);
-
-        ctx.strokeStyle = '#e0e0e0';
         ctx.stroke();
     }
 }
