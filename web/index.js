@@ -36,9 +36,9 @@ class PointRenderer {
     _getStrokeWidth(p) {
         if (p.isSelected) {
             if (p.isPointerOver) {
-                return 8;
+                return 4;
             }
-            return 4;
+            return 3;
         }
         return 1;
     }
