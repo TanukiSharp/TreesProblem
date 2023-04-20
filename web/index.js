@@ -196,9 +196,9 @@ class Renderer {
 const main = function() {
     const canvasElement = document.querySelector('.root-container > canvas.render');
 
-    const alphaStart = new Point(-30, -30, { id: 1, baseRadius: 9, hoverRadius: 12, tags: [POINT_TYPE_ALPHA_START] });
-    const alphaEnd = new Point(-60, -60, { id: 2, baseRadius: 9, hoverRadius: 12, tags: [POINT_TYPE_ALPHA_END] });
-    const beta = new Point(40, 40, { id: 3, baseRadius: 9, hoverRadius: 12, tags: [POINT_TYPE_BETA] });
+    const alphaStart = new Point(40, -120, { id: 1, baseRadius: 9, hoverRadius: 12, tags: [POINT_TYPE_ALPHA_START] });
+    const alphaEnd = new Point(-40, -120, { id: 2, baseRadius: 9, hoverRadius: 12, tags: [POINT_TYPE_ALPHA_END] });
+    const beta = new Point(120, 120, { id: 3, baseRadius: 9, hoverRadius: 12, tags: [POINT_TYPE_BETA] });
 
     const pointsManager = new PointsManager(canvasElement, [
         alphaStart,
