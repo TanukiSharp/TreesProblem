@@ -28,7 +28,7 @@ export class Interactor extends EventTarget {
 
     _onKeyDown(e) {
         if (e.key === 'Escape') {
-            if (this._isCancelled === false) {
+            if (this._isDown && this._isCancelled === false) {
                 this._isCancelled = true;
                 this._callHandler('cancelled', e);
             }
