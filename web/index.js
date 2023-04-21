@@ -19,6 +19,10 @@ class PointRenderer {
 
     _getFillColor(p) {
         if (p.tags.includes(POINT_TYPE_TREE)) {
+            if (p.isInFrustum) {
+                return 'royalblue';
+                //return 'red';
+            }
             return 'lightblue';
         } else if (p.tags.includes(POINT_TYPE_BETA)) {
             return 'lime';
@@ -56,6 +60,10 @@ class PointRenderer {
         ctx.strokeStyle = this._getStrokeColor(p);
         ctx.lineWidth = this._getStrokeWidth(p);
         ctx.stroke();
+
+        //ctx.font = '18px Arial';
+        //const alphaAngle = CameraHandler.computeAngle(p);
+        //ctx.fillText(`${p.id} (${-Math.round(CameraHandler.normalizeAngle(alphaAngle) * 180 / Math.PI)})`, p.x + 15, p.y + 5);
     }
 }
 
@@ -109,8 +117,8 @@ class CameraRenderer {
     render() {
         const ctx = this._ctx;
 
-        const alphaAngle = Math.atan2(this._alphaEnd.y, this._alphaEnd.x);
-        const betaAngle = Math.atan2(this._beta.y, this._beta.x);
+        const alphaAngle = CameraHandler.normalizeAngle(CameraHandler.computeAngle(this._alphaEnd));
+        const betaAngle = CameraHandler.normalizeAngle(CameraHandler.computeAngle(this._beta));
 
         const lineLength = Math.max(ctx.canvas.clientWidth, ctx.canvas.clientHeight);
 
@@ -121,11 +129,32 @@ class CameraRenderer {
         const betaY = Math.sin(betaAngle) * lineLength;
 
         // Draw alpha arc.
+        const rad = 10000;
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(Math.cos(betaAngle) * rad, Math.sin(betaAngle) * rad);
+        ctx.arc(0, 0, rad, betaAngle, alphaAngle, true);
+        ctx.lineTo(0, 0);
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.075)';
+        ctx.fill();
+
         ctx.beginPath();
         ctx.arc(0, 0, 30, betaAngle, alphaAngle, true);
         ctx.lineWidth = 15;
         ctx.strokeStyle = 'rgba(255, 64, 64, 0.5)';
         ctx.stroke();
+
+        const alphaAngleCenter = betaAngle - CameraHandler.deltaAngle(betaAngle, alphaAngle) / 2;
+
+        ctx.font = 'bold 24px Arial';
+        ctx.fillStyle = 'rgba(255, 64, 64, 0.5)';
+        const alphaText = `\u03b1: ${Math.round(CameraHandler.deltaAngle(betaAngle, alphaAngle) * 180 / Math.PI)}`;
+        const alphaTextX = Math.cos(alphaAngleCenter) * 60;
+        const alphaTextY = Math.sin(alphaAngleCenter) * 60;
+        ctx.fillText(alphaText, alphaTextX, alphaTextY);
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = 'red';
+        ctx.strokeText(alphaText, alphaTextX, alphaTextY);
 
         // Draw beta arc.
         ctx.beginPath();
@@ -134,20 +163,30 @@ class CameraRenderer {
         ctx.strokeStyle = 'rgba(0, 255, 64, 0.5)';
         ctx.stroke();
 
+        ctx.font = 'bold 24px Arial';
+        ctx.fillStyle = 'rgba(0, 255, 64, 0.5)';
+        const betaText = `\u03b2: ${Math.round(-betaAngle * 180 / Math.PI)}`;
+        const betaTextX = Math.cos(betaAngle - (betaAngle / 2)) * 60;
+        const betaTextY = Math.sin(betaAngle - (betaAngle / 2)) * 60;
+        ctx.fillText(betaText, betaTextX, betaTextY);
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = 'green';
+        ctx.strokeText(betaText, betaTextX, betaTextY);
+
         // Draw camera end line. (alpha)
         ctx.beginPath();
         ctx.moveTo(0, 0);
         ctx.lineTo(alphaX, alphaY);
         ctx.lineWidth = 1;
-        ctx.strokeStyle = '#d0d0d0';
+        ctx.strokeStyle = '#a0a0a0';
         ctx.stroke();
 
-        // Draw camera end line. (beta)
+        // Draw camera start line. (beta)
         ctx.beginPath();
         ctx.moveTo(0, 0);
         ctx.lineTo(betaX, betaY);
         ctx.lineWidth = 1;
-        ctx.strokeStyle = '#d0d0d0';
+        ctx.strokeStyle = '#a0a0a0';
         ctx.stroke();
     }
 }
@@ -219,6 +258,8 @@ class CameraHandler {
 
         this._onAlphaStartMovedEnter();
         this._onAlphaStartMovedUpdate();
+
+        this._checkPointsInFrustum();
     }
 
     _resetStates() {
@@ -234,6 +275,14 @@ class CameraHandler {
 
     static distanceToOrigin(p) {
         return CameraHandler.distance(0, 0, p.x, p.y);
+    }
+
+    static deltaAngle(startAngle, endAngle) {
+        if (startAngle > endAngle) {
+            return startAngle - endAngle;
+        }
+
+        return (Math.PI * 2) - (endAngle - startAngle);
     }
 
     static computeAngle(p) {
@@ -284,6 +333,40 @@ class CameraHandler {
         this._pointsManager.movePoint(this._alphaEnd, newAlphaEndX, newAlphaEndY);
     }
 
+    static normalizeAngle(angle) {
+        if (angle < 0 ) {
+            return angle;
+        }
+        return angle - (Math.PI * 2);
+    }
+
+    static _isInFrustum(pointAngle, alphaStartAngle, alphaEndAngle) {
+        if (alphaStartAngle > alphaEndAngle) {
+            return pointAngle <= alphaStartAngle && pointAngle >= alphaEndAngle;
+        }
+
+        return !(pointAngle <= alphaEndAngle && pointAngle >= alphaStartAngle);
+    }
+
+    _checkPointsInFrustum() {
+        const alphaStartAngle = CameraHandler.normalizeAngle(CameraHandler.computeAngle(this._alphaStart));
+        const alphaEndAngle = CameraHandler.normalizeAngle(CameraHandler.computeAngle(this._alphaEnd));
+
+        const alphaAngle = CameraHandler.deltaAngle(alphaStartAngle, alphaEndAngle);
+
+        const realAlphaEndAngle = (alphaStartAngle - alphaAngle) % (Math.PI * 2);
+
+        for (const point of this._pointsManager.points) {
+            if (point.tags.includes(POINT_TYPE_TREE) === false) {
+                continue;
+            }
+
+            const pointAngle = CameraHandler.normalizeAngle(CameraHandler.computeAngle(point));
+
+            point.isInFrustum = CameraHandler._isInFrustum(pointAngle, alphaStartAngle, realAlphaEndAngle);
+        }
+    }
+
     onPointMoved(e) {
         if (e.detail.sourceType !== 'event') {
             return;
@@ -304,6 +387,8 @@ class CameraHandler {
                 this._onBetaMovedUpdate();
             }
         }
+
+        this._checkPointsInFrustum();
     }
 
     onPointMovedEnd() {
@@ -318,15 +403,28 @@ const main = function() {
     const alphaEnd = new Point(-40, -120, { id: 2, baseRadius: 9, hoverRadius: 12, tags: [POINT_TYPE_ALPHA_END] });
     const beta = new Point(120, 120, { id: 3, baseRadius: 9, hoverRadius: 12, tags: [POINT_TYPE_BETA] });
 
-    const pointsManager = new PointsManager(canvasElement, [
+    const points = [
         alphaStart,
         alphaEnd,
         beta,
-        new Point(50, 50, { id: 1001, baseRadius: 7, hoverRadius: 11, tags: [POINT_TYPE_TREE] }),
-        new Point(50, 30, { id: 1002, baseRadius: 7, hoverRadius: 11, tags: [POINT_TYPE_TREE] }),
-        new Point(30, 50, { id: 1003, baseRadius: 7, hoverRadius: 11, tags: [POINT_TYPE_TREE] }),
-        new Point(30, 30, { id: 1004, baseRadius: 7, hoverRadius: 11, tags: [POINT_TYPE_TREE] }),
-    ]);
+    ];
+
+    const treeRadius = 150;
+    const treeCount = 90;
+    const tau = Math.PI * 2;
+    for (let i = 0; i < treeCount; i++) {
+        const angle = (tau * i) / treeCount;
+        points.push(new Point(Math.cos(angle) * treeRadius, Math.sin(angle) * treeRadius, { id: 1000 + i + 1, baseRadius: 7, hoverRadius: 11, tags: [POINT_TYPE_TREE] }));
+    }
+
+    // points.push(
+    //     new Point(150, 150, { id: 1001, baseRadius: 7, hoverRadius: 11, tags: [POINT_TYPE_TREE] }),
+    //     new Point(150, 90, { id: 1002, baseRadius: 7, hoverRadius: 11, tags: [POINT_TYPE_TREE] }),
+    //     new Point(90, 150, { id: 1003, baseRadius: 7, hoverRadius: 11, tags: [POINT_TYPE_TREE] }),
+    //     new Point(90, 90, { id: 1004, baseRadius: 7, hoverRadius: 11, tags: [POINT_TYPE_TREE] }),
+    // );
+
+    const pointsManager = new PointsManager(canvasElement, points);
 
     const cameraHandler = new CameraHandler(pointsManager);
 
