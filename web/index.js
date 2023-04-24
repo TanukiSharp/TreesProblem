@@ -2,6 +2,7 @@ import { GridRenderer } from './lib/points2d/renderers/gridRenderer.js';
 import { LassoSelectionRenderer } from './lib/points2d/renderers/selectionRenderer.js';
 import { PointsManager } from './lib/points2d/pointsManager.js';
 import { Point } from './lib/points2d/point.js';
+import { Accessor, Binding, PropertyGrid } from './lib/propertyGrid/propertyGrid.js';
 
 const POINT_TYPE_TREE = 'tree';
 const POINT_TYPE_BETA = 'beta';
@@ -396,8 +397,120 @@ class CameraHandler {
     }
 }
 
+const createPropertyGridTitleElement = function(text) {
+    const root = document.createElement('div');
+
+    const head = document.createElement('div');
+    head.classList.add('head');
+    const textElement = document.createElement('span');
+    textElement.classList.add('content');
+    textElement.innerText = text;
+    const tail = document.createElement('div');
+    tail.classList.add('tail');
+
+    root.appendChild(head);
+    root.appendChild(textElement);
+    root.appendChild(tail);
+
+    return root;
+}
+
+const createCheckbox = function() {
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+
+    return {
+        element: checkbox,
+        accessor: new Accessor(() => checkbox.checked, v => checkbox.checked = v),
+    };
+}
+
+const createSlider = function(min, max) {
+    const slider = document.createElement('input');
+    slider.type = 'range';
+    slider.min = min;
+    slider.max = max;
+
+    return {
+        element: slider,
+        accessor: new Accessor(() => Number(slider.value), v => slider.value = Number(v)),
+    };
+}
+
+const createDropdownAccessor = function(texts) {
+    const select = document.createElement('select');
+
+    for (const text of texts) {
+        const option = document.createElement('option');
+        option.innerText = text;
+        select.appendChild(option);
+    }
+
+    return {
+        element: select,
+        accessor: new Accessor(() => Number(select.selectedIndex), v => select.selectedIndex = Number(v)),
+    };
+}
+
+const setupGeneratorPropertyGridSection = function(propertyGrid, pointsManager, cameraHandler) {
+    propertyGrid.title('Generator');
+
+    let treesCount = 30;
+
+    const treesSliderInfo = createSlider(1, 90);
+    const treesCountAccessor = new Accessor(() => treesCount, v => treesCount = v)
+    Binding.twoWay(treesSliderInfo.accessor, treesCountAccessor);
+
+    propertyGrid.add(null, 'Tree count:', treesSliderInfo.element, treesCountAccessor);
+
+
+}
+
+const setupPropertyGrid = function(propertyGrid, pointsManager, cameraHandler) {
+    setupGeneratorPropertyGridSection(propertyGrid, pointsManager, cameraHandler);
+    propertyGrid.separator();
+}
+
 const main = function() {
     const canvasElement = document.querySelector('.root-container > canvas.render');
+    const propertyGridElement = document.querySelector('.root-container > .side-bar > .property-grid-scroller > .property-grid');
+
+    const propertyGrid = new PropertyGrid(propertyGridElement);
+
+
+    propertyGrid.title(createPropertyGridTitleElement('Test'));
+    propertyGrid.add('lol1', 'Lol 1:', document.createElement('input'), () => {});
+    propertyGrid.add('lol2', 'Lol 2:', document.createElement('input'), () => {});
+    propertyGrid.add('lol3', 'Lulzylol 3:', document.createElement('input'), () => {});
+    propertyGrid.separator();
+    propertyGrid.add('lol1', 'Lol 1:', document.createElement('input'), () => {});
+    propertyGrid.add('lol2', 'Lol 2:', document.createElement('input'), () => {});
+    propertyGrid.add('lol3', 'Lulzylol 3:', document.createElement('input'), () => {});
+    propertyGrid.separator();
+    propertyGrid.add('lol1', 'Lol 1:', document.createElement('input'), () => {});
+    propertyGrid.add('lol2', 'Lol 2:', document.createElement('input'), () => {});
+    propertyGrid.add('lol3', 'Lulzylol 3:', document.createElement('input'), () => {});
+    propertyGrid.separator();
+    propertyGrid.add('lol1', 'Lol 1:', document.createElement('input'), () => {});
+    propertyGrid.add('lol2', 'Lol 2:', document.createElement('input'), () => {});
+    propertyGrid.add('lol3', 'Lulzylol 3:', document.createElement('input'), () => {});
+    propertyGrid.separator();
+    propertyGrid.add('lol1', 'Lol 1:', document.createElement('input'), () => {});
+    propertyGrid.add('lol2', 'Lol 2:', document.createElement('input'), () => {});
+    propertyGrid.add('lol3', 'Lulzylol 3:', document.createElement('input'), () => {});
+    propertyGrid.separator();
+    propertyGrid.add('lol1', 'Lol 1:', document.createElement('input'), () => {});
+    propertyGrid.add('lol2', 'Lol 2:', document.createElement('input'), () => {});
+    propertyGrid.add('lol3', 'Lulzylol 3:', document.createElement('input'), () => {});
+    propertyGrid.separator();
+    propertyGrid.add('lol1', 'Lol 1:', document.createElement('input'), () => {});
+    propertyGrid.add('lol2', 'Lol 2:', document.createElement('input'), () => {});
+    propertyGrid.add('lol3', 'Lulzylol 3:', document.createElement('input'), () => {});
+    propertyGrid.separator();
+    propertyGrid.add('lol1', 'Lol 1:', document.createElement('input'), () => {});
+    propertyGrid.add('lol2', 'Lol 2:', document.createElement('input'), () => {});
+    propertyGrid.add('lol3', 'Lulzylol 3:', document.createElement('input'), () => {});
+
 
     const alphaStart = new Point(40, -120, { id: 1, baseRadius: 9, hoverRadius: 12, tags: [POINT_TYPE_ALPHA_START] });
     const alphaEnd = new Point(-40, -120, { id: 2, baseRadius: 9, hoverRadius: 12, tags: [POINT_TYPE_ALPHA_END] });
@@ -430,6 +543,8 @@ const main = function() {
 
     pointsManager.addEventListener('pointmove', e => cameraHandler.onPointMoved(e));
     canvasElement.addEventListener('pointerup', _ => cameraHandler.onPointMovedEnd());
+
+    setupPropertyGrid(propertyGrid, pointsManager, cameraHandler);
 
     new Renderer(canvasElement, pointsManager);
 }

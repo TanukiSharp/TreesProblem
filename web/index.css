@@ -28,8 +28,64 @@ body {
     display: grid;
     grid-column: 2;
     grid-row: 1;
-    align-content: start;
+    align-content: stretch;
     overflow-y: hidden;
+    border-left: 1px solid #e0e0e0;
     background-color: whitesmoke;
     zoom: 1.4;
+}
+
+.root-container > .side-bar > .property-grid-scroller {
+    display: grid;
+    align-content: start;
+    align-self: stretch;
+    justify-self: stretch;
+    overflow-y: scroll;
+}
+
+.root-container > .side-bar > .property-grid-scroller > .property-grid {
+    display: grid;
+    margin: 4px;
+    grid-template-columns: auto 1fr 24px;
+    column-gap: 4px;
+    row-gap: 4px;
+    grid-auto-rows: auto;
+}
+
+.root-container > .side-bar > .property-grid-scroller > .property-grid > .title {
+    grid-column: 1 / span 3;
+    display: grid;
+    grid-template-columns: auto auto 1fr;
+}
+
+.root-container > .side-bar > .property-grid-scroller > .property-grid > .title > .head {
+    grid-column: 1;
+    height: 0px;
+    width: 0px;
+}
+
+.root-container > .side-bar > .property-grid-scroller > .property-grid > .title > .content {
+    grid-column: 1 / span 2;
+    font-weight: bold;
+}
+
+.root-container > .side-bar > .property-grid-scroller > .property-grid > .title > .tail {
+    grid-column: 3;
+    height: 1px;
+    margin: 8px 12px 8px 8px;
+    justify-self: stretch;
+    align-self: center;
+    background-color: rgb(0, 0, 0, 0.05);
+}
+
+.root-container > .side-bar > .property-grid-scroller > .property-grid > .separator {
+    grid-column: 1 / span 3;
+    background-color: rgb(0, 0, 0, 0.05);
+    height: 1px;
+    margin: 8px 12px 8px 12px;
+    justify-self: stretch;
+}
+
+.root-container > .side-bar > .property-grid-scroller > .property-grid > .key {
+    margin-left: 12px;
 }
