@@ -47,15 +47,23 @@ body {
     display: grid;
     margin: 4px;
     grid-template-columns: auto 1fr 24px;
+    grid-auto-rows: auto;
     column-gap: 4px;
     row-gap: 4px;
-    grid-auto-rows: auto;
+    justify-items: stretch;
+}
+
+.root-container > .side-bar > .property-grid-scroller > .property-grid > * {
+    margin-top: 2px;
+    margin-bottom: 2px;
 }
 
 .root-container > .side-bar > .property-grid-scroller > .property-grid > .title {
     grid-column: 1 / span 3;
     display: grid;
     grid-template-columns: auto auto 1fr;
+    margin-top: 12px;
+    margin-bottom: 4px;
 }
 
 .root-container > .side-bar > .property-grid-scroller > .property-grid > .title > .head {
@@ -84,6 +92,25 @@ body {
     height: 1px;
     margin: 8px 12px 8px 12px;
     justify-self: stretch;
+}
+
+.root-container > .side-bar > .property-grid-scroller > .property-grid > .slider-container {
+    display: grid;
+    grid-template-columns: 1fr 40px;
+    align-items: center;
+    align-content: center;
+}
+
+.root-container > .side-bar > .property-grid-scroller > .property-grid > .slider-container > input[type='range'] {
+    grid-column: 1;
+}
+
+.root-container > .side-bar > .property-grid-scroller > .property-grid > .slider-container > span {
+    grid-column: 2;
+}
+
+.root-container > .side-bar > .property-grid-scroller > .property-grid > input[type='checkbox'] {
+    justify-self: start;
 }
 
 .root-container > .side-bar > .property-grid-scroller > .property-grid > .key {

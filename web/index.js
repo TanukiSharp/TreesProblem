@@ -2,7 +2,8 @@ import { GridRenderer } from './lib/points2d/renderers/gridRenderer.js';
 import { LassoSelectionRenderer } from './lib/points2d/renderers/selectionRenderer.js';
 import { PointsManager } from './lib/points2d/pointsManager.js';
 import { Point } from './lib/points2d/point.js';
-import { Accessor, Binding, PropertyGrid } from './lib/propertyGrid/propertyGrid.js';
+import { PropertyGrid } from './lib/propertyGrid/propertyGrid.js';
+import { Ui } from './ui.js';
 
 const POINT_TYPE_TREE = 'tree';
 const POINT_TYPE_BETA = 'beta';
@@ -69,16 +70,16 @@ class PointRenderer {
 }
 
 class PointsRenderer {
-    constructor(ctx, points) {
+    constructor(ctx, pointsManager) {
         this._ctx = ctx;
-        this._points = points;
+        this._pointsManager = pointsManager;
         this._pointRenderer = new PointRenderer(ctx);
     }
 
     render() {
         let renderAtLast = null;
 
-        for (const point of this._points) {
+        for (const point of this._pointsManager.points) {
             if (point.isPointerOver) {
                 renderAtLast = point;
             } else {
@@ -93,14 +94,18 @@ class PointsRenderer {
 }
 
 class CameraRenderer {
-    constructor(ctx, points) {
+    constructor(ctx, controlPoints) {
         this._ctx = ctx;
+
+        this._emphasisColor = null;
+        this.emphasisDirection = 'inner';
+        this.emphasisAlpha = 0.075;
 
         this._alphaStart = null;
         this._alphaEnd = null;
         this._beta = null;
 
-        for (const point of points) {
+        for (const point of controlPoints) {
             if (point.tags.includes(POINT_TYPE_ALPHA_START)) {
                 this._alphaStart = point;
             } else if (point.tags.includes(POINT_TYPE_ALPHA_END)) {
@@ -112,6 +117,17 @@ class CameraRenderer {
 
         if (this._alphaStart === null || this._alphaEnd === null || this._beta === null) {
             throw new Error('Alpha start, alpha end and/or beta point(s) is/are missing.');
+        }
+    }
+
+    get emphasisAlpha() {
+        return this._emphasisAlpha;
+    }
+
+    set emphasisAlpha(value) {
+        if (value !== this._emphasisAlpha) {
+            this._emphasisColor = `rgba(0, 0, 0, ${value})`;
+            this._emphasisAlpha = value;
         }
     }
 
@@ -129,16 +145,22 @@ class CameraRenderer {
         const betaX = Math.cos(betaAngle) * lineLength;
         const betaY = Math.sin(betaAngle) * lineLength;
 
-        // Draw alpha arc.
-        const rad = 10000;
-        ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.lineTo(Math.cos(betaAngle) * rad, Math.sin(betaAngle) * rad);
-        ctx.arc(0, 0, rad, betaAngle, alphaAngle, true);
-        ctx.lineTo(0, 0);
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.075)';
-        ctx.fill();
+        const rad = Math.max(ctx.canvas.width, ctx.canvas.height);
 
+        // Draw emphasis.
+        if (this.emphasisDirection !== 'none') {
+            const counterClockwise = this.emphasisDirection === 'inner';
+
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(Math.cos(betaAngle) * rad, Math.sin(betaAngle) * rad);
+            ctx.arc(0, 0, rad, betaAngle, alphaAngle, counterClockwise);
+            ctx.lineTo(0, 0);
+            ctx.fillStyle = this._emphasisColor;
+            ctx.fill();
+        }
+
+        // Draw alpha arc.
         ctx.beginPath();
         ctx.arc(0, 0, 30, betaAngle, alphaAngle, true);
         ctx.lineWidth = 15;
@@ -193,15 +215,17 @@ class CameraRenderer {
 }
 
 class Renderer {
-    constructor(canvas, pointsManager) {
+    constructor(canvas, pointsManager, controlPoints) {
         const ctx = canvas.getContext('2d');
 
         this._ctx = ctx;
 
+        this.cameraRenderer = new CameraRenderer(ctx, controlPoints);
+
         this._renderers = [
             new GridRenderer(ctx),
-            new CameraRenderer(ctx, pointsManager.points),
-            new PointsRenderer(ctx, pointsManager.points),
+            new PointsRenderer(ctx, pointsManager),
+            this.cameraRenderer,
             new LassoSelectionRenderer(ctx, pointsManager),
         ];
 
@@ -233,15 +257,18 @@ class Renderer {
     }
 }
 
-class CameraHandler {
-    constructor(pointsManager) {
-        this._pointsManager = pointsManager;
+class CameraHandler extends EventTarget {
+    constructor(pointsManager, controlPoints) {
+        super();
 
+        this._pointsManager = pointsManager;
         this._alphaStart = null;
         this._alphaEnd = null;
         this._beta = null;
 
-        for (const point of pointsManager.points) {
+        this._inFrustumCount = null;
+
+        for (const point of controlPoints) {
             if (point.tags.includes(POINT_TYPE_ALPHA_START)) {
                 this._alphaStart = point;
             } else if (point.tags.includes(POINT_TYPE_ALPHA_END)) {
@@ -260,7 +287,7 @@ class CameraHandler {
         this._onAlphaStartMovedEnter();
         this._onAlphaStartMovedUpdate();
 
-        this._checkPointsInFrustum();
+        this.checkPointsInFrustum();
     }
 
     _resetStates() {
@@ -349,13 +376,15 @@ class CameraHandler {
         return !(pointAngle <= alphaEndAngle && pointAngle >= alphaStartAngle);
     }
 
-    _checkPointsInFrustum() {
+    checkPointsInFrustum() {
         const alphaStartAngle = CameraHandler.normalizeAngle(CameraHandler.computeAngle(this._alphaStart));
         const alphaEndAngle = CameraHandler.normalizeAngle(CameraHandler.computeAngle(this._alphaEnd));
 
         const alphaAngle = CameraHandler.deltaAngle(alphaStartAngle, alphaEndAngle);
 
         const realAlphaEndAngle = (alphaStartAngle - alphaAngle) % (Math.PI * 2);
+
+        let count = 0;
 
         for (const point of this._pointsManager.points) {
             if (point.tags.includes(POINT_TYPE_TREE) === false) {
@@ -365,6 +394,15 @@ class CameraHandler {
             const pointAngle = CameraHandler.normalizeAngle(CameraHandler.computeAngle(point));
 
             point.isInFrustum = CameraHandler._isInFrustum(pointAngle, alphaStartAngle, realAlphaEndAngle);
+
+            if (point.isInFrustum) {
+                count++;
+            }
+        }
+
+        if (this._inFrustumCount !== count) {
+            this.dispatchEvent(new CustomEvent('infrustumcount-changed', { detail: count }));
+            this._inFrustumCount = count;
         }
     }
 
@@ -389,7 +427,7 @@ class CameraHandler {
             }
         }
 
-        this._checkPointsInFrustum();
+        this.checkPointsInFrustum();
     }
 
     onPointMovedEnd() {
@@ -415,120 +453,190 @@ const createPropertyGridTitleElement = function(text) {
     return root;
 }
 
-const createCheckbox = function() {
-    const checkbox = document.createElement('input');
-    checkbox.type = 'checkbox';
-
-    return {
-        element: checkbox,
-        accessor: new Accessor(() => checkbox.checked, v => checkbox.checked = v),
-    };
-}
-
-const createSlider = function(min, max) {
-    const slider = document.createElement('input');
-    slider.type = 'range';
-    slider.min = min;
-    slider.max = max;
-
-    return {
-        element: slider,
-        accessor: new Accessor(() => Number(slider.value), v => slider.value = Number(v)),
-    };
-}
-
-const createDropdownAccessor = function(texts) {
-    const select = document.createElement('select');
-
-    for (const text of texts) {
-        const option = document.createElement('option');
-        option.innerText = text;
-        select.appendChild(option);
+class DispatchTreeGenerator {
+    constructor(canvasElement) {
+        this._canvasElement = canvasElement;
     }
 
+    get name() {
+        return 'Dispatch';
+    }
+
+    get description() {
+        return 'Generates trees with a completely random distribution.';
+    }
+
+    generate(count) {
+        const halfWidth = this._canvasElement.width / 2;
+        const halfHeight = this._canvasElement.height / 2;
+
+        const result = [];
+
+        for (let i = 0; i < count; i++) {
+            result.push(new Point(
+                ((Math.random() * 2) - 1) * halfWidth,
+                ((Math.random() * 2) - 1) * halfHeight,
+                {
+                    id: 1000 + i + 1,
+                    baseRadius: 7,
+                    hoverRadius: 11,
+                    tags: [POINT_TYPE_TREE]
+                }
+            ));
+        }
+
+        return result;
+    }
+}
+
+class CircleTreeGenerator {
+    get name() {
+        return 'Circle';
+    }
+
+    get description() {
+        return 'Generates trees in circle, with a random radius.';
+    }
+
+    generate(count) {
+        const treeRadius = 150;
+        const tau = Math.PI * 2;
+
+        const result = [];
+
+        for (let i = 0; i < count; i++) {
+            const angle = (tau * i) / count;
+            result.push(new Point(
+                Math.cos(angle) * treeRadius,
+                Math.sin(angle) * treeRadius,
+                {
+                    id: 1000 + i + 1,
+                    baseRadius: 7,
+                    hoverRadius: 11,
+                    tags: [POINT_TYPE_TREE]
+                }
+            ));
+        }
+
+        return result;
+    }
+}
+
+const treeGenerators = [];
+
+const generatorToDropdownInfo = function(generator) {
     return {
-        element: select,
-        accessor: new Accessor(() => Number(select.selectedIndex), v => select.selectedIndex = Number(v)),
+        text: generator.name,
+        title: generator.description,
     };
 }
 
-const setupGeneratorPropertyGridSection = function(propertyGrid, pointsManager, cameraHandler) {
-    propertyGrid.title('Generator');
+const setupGeneratorPropertyGridSection = function(propertyGrid, pointsManager, cameraHandler, controlPoints) {
+    propertyGrid.title(createPropertyGridTitleElement('Generator'));
 
-    let treesCount = 30;
+    let generateTrees;
 
-    const treesSliderInfo = createSlider(1, 90);
-    const treesCountAccessor = new Accessor(() => treesCount, v => treesCount = v)
-    Binding.twoWay(treesSliderInfo.accessor, treesCountAccessor);
+    const treesSliderInfo = Ui.createSlider(30, 1, 90);
+    const continuousGenerationCheckboxInfo = Ui.createCheckbox(false);
+    const generatorTypeDropdownInfo = Ui.createIndexedDropdown(treeGenerators.map(generatorToDropdownInfo));
+    const generateButtonInfo = Ui.createButton('Generate', () => generateTrees());
 
-    propertyGrid.add(null, 'Tree count:', treesSliderInfo.element, treesCountAccessor);
+    generateTrees = () => {
+        const treesCount = treesSliderInfo.accessor.get();
+        const generatorIndex = generatorTypeDropdownInfo.accessor.get();
 
+        pointsManager.points = treeGenerators[generatorIndex].generate(treesCount);
+        pointsManager.points.push(...controlPoints);
 
+        cameraHandler.checkPointsInFrustum();
+    };
+
+    treesSliderInfo.accessor.addEventListener('value-changed', () => {
+        if (continuousGenerationCheckboxInfo.accessor.get()) {
+            generateTrees();
+        }
+    });
+
+    generatorTypeDropdownInfo.accessor.addEventListener('value-changed', () => {
+        if (continuousGenerationCheckboxInfo.accessor.get()) {
+            generateTrees();
+        }
+    });
+
+    continuousGenerationCheckboxInfo.accessor.addEventListener('value-changed', () => {
+        generateButtonInfo.element.disabled = continuousGenerationCheckboxInfo.accessor.get();
+        generateTrees();
+    });
+
+    propertyGrid.add(null, 'Tree count:', treesSliderInfo.element, treesSliderInfo.accessor);
+    propertyGrid.add(null, 'Type:', generatorTypeDropdownInfo.element);
+    propertyGrid.add(null, Ui.createSpan('Continuous gen.:', 'Continuous generation. Generates trees each time parameters change.'), continuousGenerationCheckboxInfo.element);
+    propertyGrid.add(null, '', generateButtonInfo.element);
+
+    cameraHandler.addEventListener('infrustumcount-changed', e => console.log(e.detail));
 }
 
-const setupPropertyGrid = function(propertyGrid, pointsManager, cameraHandler) {
-    setupGeneratorPropertyGridSection(propertyGrid, pointsManager, cameraHandler);
-    propertyGrid.separator();
+const setupEmphasisPropertyGridSection = function(propertyGrid, cameraRenderer) {
+
+    propertyGrid.title(createPropertyGridTitleElement('Emphasis'));
+
+    const emphasisDropdownInfo = Ui.createValuedDropdown([
+        {
+            text: 'None',
+            value: 'none',
+        },
+        {
+            text: 'Inner view',
+            value: 'inner',
+        },
+        {
+            text: 'Outer view',
+            value: 'outer',
+        }
+    ]);
+    emphasisDropdownInfo.accessor.set('inner');
+
+    propertyGrid.add(null, 'Emphasis:', emphasisDropdownInfo.element);
+
+    const emphasisAlphaSliderInfo = Ui.createSlider(cameraRenderer.emphasisAlpha, 0.05, 0.5, 0.001);
+    propertyGrid.add(null, 'Transparency:', emphasisAlphaSliderInfo.element, emphasisAlphaSliderInfo.accessor);
+
+    emphasisDropdownInfo.accessor.addEventListener('value-changed', () => {
+        cameraRenderer.emphasisDirection = emphasisDropdownInfo.accessor.get();
+        // Dirty access hack (childNodes[0]) because the slider element is actually a div with a slider and span.
+        emphasisAlphaSliderInfo.element.childNodes[0].disabled = cameraRenderer.emphasisDirection === 'none';
+    });
+
+    emphasisAlphaSliderInfo.accessor.addEventListener('value-changed', () => {
+        cameraRenderer.emphasisAlpha = emphasisAlphaSliderInfo.accessor.get();
+    });
+}
+
+const setupPropertyGrid = function(propertyGrid, pointsManager, cameraHandler, cameraRenderer, controlPoints) {
+    setupGeneratorPropertyGridSection(propertyGrid, pointsManager, cameraHandler, controlPoints);
+    setupEmphasisPropertyGridSection(propertyGrid, cameraRenderer);
 }
 
 const main = function() {
     const canvasElement = document.querySelector('.root-container > canvas.render');
     const propertyGridElement = document.querySelector('.root-container > .side-bar > .property-grid-scroller > .property-grid');
 
+    treeGenerators.push(new DispatchTreeGenerator(canvasElement));
+    treeGenerators.push(new CircleTreeGenerator());
+
+
     const propertyGrid = new PropertyGrid(propertyGridElement);
-
-
-    propertyGrid.title(createPropertyGridTitleElement('Test'));
-    propertyGrid.add('lol1', 'Lol 1:', document.createElement('input'), () => {});
-    propertyGrid.add('lol2', 'Lol 2:', document.createElement('input'), () => {});
-    propertyGrid.add('lol3', 'Lulzylol 3:', document.createElement('input'), () => {});
-    propertyGrid.separator();
-    propertyGrid.add('lol1', 'Lol 1:', document.createElement('input'), () => {});
-    propertyGrid.add('lol2', 'Lol 2:', document.createElement('input'), () => {});
-    propertyGrid.add('lol3', 'Lulzylol 3:', document.createElement('input'), () => {});
-    propertyGrid.separator();
-    propertyGrid.add('lol1', 'Lol 1:', document.createElement('input'), () => {});
-    propertyGrid.add('lol2', 'Lol 2:', document.createElement('input'), () => {});
-    propertyGrid.add('lol3', 'Lulzylol 3:', document.createElement('input'), () => {});
-    propertyGrid.separator();
-    propertyGrid.add('lol1', 'Lol 1:', document.createElement('input'), () => {});
-    propertyGrid.add('lol2', 'Lol 2:', document.createElement('input'), () => {});
-    propertyGrid.add('lol3', 'Lulzylol 3:', document.createElement('input'), () => {});
-    propertyGrid.separator();
-    propertyGrid.add('lol1', 'Lol 1:', document.createElement('input'), () => {});
-    propertyGrid.add('lol2', 'Lol 2:', document.createElement('input'), () => {});
-    propertyGrid.add('lol3', 'Lulzylol 3:', document.createElement('input'), () => {});
-    propertyGrid.separator();
-    propertyGrid.add('lol1', 'Lol 1:', document.createElement('input'), () => {});
-    propertyGrid.add('lol2', 'Lol 2:', document.createElement('input'), () => {});
-    propertyGrid.add('lol3', 'Lulzylol 3:', document.createElement('input'), () => {});
-    propertyGrid.separator();
-    propertyGrid.add('lol1', 'Lol 1:', document.createElement('input'), () => {});
-    propertyGrid.add('lol2', 'Lol 2:', document.createElement('input'), () => {});
-    propertyGrid.add('lol3', 'Lulzylol 3:', document.createElement('input'), () => {});
-    propertyGrid.separator();
-    propertyGrid.add('lol1', 'Lol 1:', document.createElement('input'), () => {});
-    propertyGrid.add('lol2', 'Lol 2:', document.createElement('input'), () => {});
-    propertyGrid.add('lol3', 'Lulzylol 3:', document.createElement('input'), () => {});
-
 
     const alphaStart = new Point(40, -120, { id: 1, baseRadius: 9, hoverRadius: 12, tags: [POINT_TYPE_ALPHA_START] });
     const alphaEnd = new Point(-40, -120, { id: 2, baseRadius: 9, hoverRadius: 12, tags: [POINT_TYPE_ALPHA_END] });
     const beta = new Point(120, 120, { id: 3, baseRadius: 9, hoverRadius: 12, tags: [POINT_TYPE_BETA] });
 
-    const points = [
+    const controlPoints = [
         alphaStart,
         alphaEnd,
         beta,
     ];
 
-    const treeRadius = 150;
-    const treeCount = 90;
-    const tau = Math.PI * 2;
-    for (let i = 0; i < treeCount; i++) {
-        const angle = (tau * i) / treeCount;
-        points.push(new Point(Math.cos(angle) * treeRadius, Math.sin(angle) * treeRadius, { id: 1000 + i + 1, baseRadius: 7, hoverRadius: 11, tags: [POINT_TYPE_TREE] }));
-    }
 
     // points.push(
     //     new Point(150, 150, { id: 1001, baseRadius: 7, hoverRadius: 11, tags: [POINT_TYPE_TREE] }),
@@ -537,16 +645,16 @@ const main = function() {
     //     new Point(90, 90, { id: 1004, baseRadius: 7, hoverRadius: 11, tags: [POINT_TYPE_TREE] }),
     // );
 
-    const pointsManager = new PointsManager(canvasElement, points);
+    const pointsManager = new PointsManager(canvasElement);
 
-    const cameraHandler = new CameraHandler(pointsManager);
+    const cameraHandler = new CameraHandler(pointsManager, controlPoints);
 
     pointsManager.addEventListener('pointmove', e => cameraHandler.onPointMoved(e));
     canvasElement.addEventListener('pointerup', _ => cameraHandler.onPointMovedEnd());
 
-    setupPropertyGrid(propertyGrid, pointsManager, cameraHandler);
+    const renderer = new Renderer(canvasElement, pointsManager, controlPoints);
 
-    new Renderer(canvasElement, pointsManager);
+    setupPropertyGrid(propertyGrid, pointsManager, cameraHandler, renderer.cameraRenderer, controlPoints);
 }
 
 window.addEventListener('load', main);
