@@ -1,4 +1,4 @@
-import { Accessor } from './lib/propertyGrid/propertyGrid.js';
+import { Accessor } from '../lib/propertyGrid/propertyGrid.js';
 
 export class Ui {
     static createSpan(text, title) {

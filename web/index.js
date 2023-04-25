@@ -6,7 +6,7 @@ import { CameraHandler } from './app/cameraHandler.js';
 import { RootRenderer } from './app/renderers/rootRenderer.js';
 import { DispatchTreeGenerator } from './app/treeGenerators/dispatchTreeGenerator.js';
 import { CircleTreeGenerator } from './app/treeGenerators/circleTreeGenerator.js';
-import { Ui } from './ui.js';
+import { Ui } from './app/ui.js';
 
 const treeGenerators = [];
 
