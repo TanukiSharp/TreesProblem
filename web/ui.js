@@ -12,6 +12,24 @@ export class Ui {
         return span;
     }
 
+    static createPropertyGridTitleElement = function(text) {
+        const root = document.createElement('div');
+
+        const head = document.createElement('div');
+        head.classList.add('head');
+        const textElement = document.createElement('span');
+        textElement.classList.add('content');
+        textElement.innerText = text;
+        const tail = document.createElement('div');
+        tail.classList.add('tail');
+
+        root.appendChild(head);
+        root.appendChild(textElement);
+        root.appendChild(tail);
+
+        return root;
+    }
+
     static createSpan(text, title) {
         const span = document.createElement('span');
         span.innerText = text;

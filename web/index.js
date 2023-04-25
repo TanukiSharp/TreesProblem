@@ -435,24 +435,6 @@ class CameraHandler extends EventTarget {
     }
 }
 
-const createPropertyGridTitleElement = function(text) {
-    const root = document.createElement('div');
-
-    const head = document.createElement('div');
-    head.classList.add('head');
-    const textElement = document.createElement('span');
-    textElement.classList.add('content');
-    textElement.innerText = text;
-    const tail = document.createElement('div');
-    tail.classList.add('tail');
-
-    root.appendChild(head);
-    root.appendChild(textElement);
-    root.appendChild(tail);
-
-    return root;
-}
-
 class DispatchTreeGenerator {
     constructor(canvasElement) {
         this._canvasElement = canvasElement;
@@ -532,7 +514,7 @@ const generatorToDropdownInfo = function(generator) {
 }
 
 const setupGeneratorPropertyGridSection = function(propertyGrid, pointsManager, cameraHandler, controlPoints) {
-    propertyGrid.title(createPropertyGridTitleElement('Generator'));
+    propertyGrid.title(Ui.createPropertyGridTitleElement('Generator'));
 
     let generateTrees;
 
@@ -565,7 +547,9 @@ const setupGeneratorPropertyGridSection = function(propertyGrid, pointsManager, 
 
     continuousGenerationCheckboxInfo.accessor.addEventListener('value-changed', () => {
         generateButtonInfo.element.disabled = continuousGenerationCheckboxInfo.accessor.get();
-        generateTrees();
+        if (continuousGenerationCheckboxInfo.accessor.get()) {
+            generateTrees();
+        }
     });
 
     propertyGrid.add(null, 'Tree count:', treesSliderInfo.element, treesSliderInfo.accessor);
@@ -577,8 +561,7 @@ const setupGeneratorPropertyGridSection = function(propertyGrid, pointsManager, 
 }
 
 const setupEmphasisPropertyGridSection = function(propertyGrid, cameraRenderer) {
-
-    propertyGrid.title(createPropertyGridTitleElement('Emphasis'));
+    propertyGrid.title(Ui.createPropertyGridTitleElement('Emphasis'));
 
     const emphasisDropdownInfo = Ui.createValuedDropdown([
         {
@@ -624,7 +607,6 @@ const main = function() {
     treeGenerators.push(new DispatchTreeGenerator(canvasElement));
     treeGenerators.push(new CircleTreeGenerator());
 
-
     const propertyGrid = new PropertyGrid(propertyGridElement);
 
     const alphaStart = new Point(40, -120, { id: 1, baseRadius: 9, hoverRadius: 12, tags: [POINT_TYPE_ALPHA_START] });
@@ -636,14 +618,6 @@ const main = function() {
         alphaEnd,
         beta,
     ];
-
-
-    // points.push(
-    //     new Point(150, 150, { id: 1001, baseRadius: 7, hoverRadius: 11, tags: [POINT_TYPE_TREE] }),
-    //     new Point(150, 90, { id: 1002, baseRadius: 7, hoverRadius: 11, tags: [POINT_TYPE_TREE] }),
-    //     new Point(90, 150, { id: 1003, baseRadius: 7, hoverRadius: 11, tags: [POINT_TYPE_TREE] }),
-    //     new Point(90, 90, { id: 1004, baseRadius: 7, hoverRadius: 11, tags: [POINT_TYPE_TREE] }),
-    // );
 
     const pointsManager = new PointsManager(canvasElement);
 
