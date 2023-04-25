@@ -41,6 +41,24 @@ export class Ui {
         return span;
     }
 
+    static createIndicator(initialValue) {
+        let localValue = initialValue ?? '';
+
+        const span = Ui.createSpan(localValue);
+
+        const accessor = new Accessor(() => localValue, v => localValue = v);
+
+        const onChanged = () => span.innerText = accessor.get();
+
+        accessor.addEventListener('value-changed', onChanged);
+
+        return {
+            element: span,
+            accessor: accessor,
+            dispose: () => accessor.removeEventListener('value-changed', onChanged),
+        };
+    }
+
     static createSlider(initialValue, min, max, step) {
         const container = document.createElement('div');
         container.classList.add('slider-container');

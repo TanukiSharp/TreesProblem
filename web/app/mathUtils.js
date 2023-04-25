@@ -1,4 +1,8 @@
 export class MathUtils {
+    static radiansToDegrees(radians) {
+        return radians * 180 / Math.PI;
+    }
+
     // Transforms angle that goes from 0 to -180 and from +180 to 0
     // in an angle that goes from 0 to 360.
     static normalizeAngle(angle) {

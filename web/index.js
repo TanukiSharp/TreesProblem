@@ -17,6 +17,39 @@ const generatorToDropdownInfo = function(generator) {
     };
 }
 
+const setupIndicatorsPropertyGridSection = function(propertyGrid, pointsManager, cameraHandler) {
+    propertyGrid.title(Ui.createPropertyGridTitleElement('Indicators'));
+
+    const treesInFrustum = Ui.createIndicator('0');
+    const maxTreesInFrustum = Ui.createIndicator('0');
+
+    const clearButtonInfo = Ui.createButton('Clear max', () => maxTreesInFrustum.accessor.set(0));
+
+    const alphaAngleInfo = Ui.createIndicator('0°');
+    const betaAngleInfo = Ui.createIndicator('0°');
+
+    pointsManager.addEventListener('pointmove', e => {
+        if (e.detail.point.tags.includes(POINT_TYPE_ALPHA_START) ||
+            e.detail.point.tags.includes(POINT_TYPE_ALPHA_END)) {
+            alphaAngleInfo.accessor.set(`${cameraHandler.alphaAngle}°`);
+        } else if (e.detail.point.tags.includes(POINT_TYPE_BETA)) {
+            betaAngleInfo.accessor.set(`${cameraHandler.betaAngle}°`);
+        }
+    });
+
+    propertyGrid.add('alpha-angle', 'Alpha:', alphaAngleInfo.element);
+    propertyGrid.add('beta-angle', 'Beta:', betaAngleInfo.element);
+
+    propertyGrid.add(null, 'Trees in frustum:', treesInFrustum.element);
+    propertyGrid.add(null, 'Max trees in frustum:', maxTreesInFrustum.element);
+    propertyGrid.add(null, '', clearButtonInfo.element);
+
+    cameraHandler.addEventListener('infrustumcount-changed', e => {
+        maxTreesInFrustum.accessor.set(Math.max(maxTreesInFrustum.accessor.get(), e.detail));
+        treesInFrustum.accessor.set(e.detail);
+    });
+}
+
 const setupGeneratorPropertyGridSection = function(propertyGrid, pointsManager, cameraHandler, controlPoints) {
     propertyGrid.title(Ui.createPropertyGridTitleElement('Generator'));
 
@@ -98,6 +131,7 @@ const setupEmphasisPropertyGridSection = function(propertyGrid, cameraRenderer) 
 }
 
 const setupPropertyGrid = function(propertyGrid, pointsManager, cameraHandler, cameraRenderer, controlPoints) {
+    setupIndicatorsPropertyGridSection(propertyGrid, pointsManager, cameraHandler);
     setupGeneratorPropertyGridSection(propertyGrid, pointsManager, cameraHandler, controlPoints);
     setupEmphasisPropertyGridSection(propertyGrid, cameraRenderer);
 }

@@ -79,7 +79,7 @@ export class CameraRenderer {
 
         ctx.font = 'bold 24px Arial';
         ctx.fillStyle = 'rgba(255, 64, 64, 0.5)';
-        const alphaText = `\u03b1: ${Math.round(MathUtils.deltaAngle(betaAngle, alphaAngle) * 180 / Math.PI)}`;
+        const alphaText = `\u03b1: ${Math.round(MathUtils.radiansToDegrees(MathUtils.deltaAngle(betaAngle, alphaAngle)))}°`;
         const alphaTextX = Math.cos(alphaAngleCenter) * 60;
         const alphaTextY = Math.sin(alphaAngleCenter) * 60;
         ctx.fillText(alphaText, alphaTextX, alphaTextY);
@@ -96,7 +96,7 @@ export class CameraRenderer {
 
         ctx.font = 'bold 24px Arial';
         ctx.fillStyle = 'rgba(0, 255, 64, 0.5)';
-        const betaText = `\u03b2: ${Math.round(-betaAngle * 180 / Math.PI)}`;
+        const betaText = `\u03b2: ${Math.round(MathUtils.radiansToDegrees(-betaAngle))}°`;
         const betaTextX = Math.cos(betaAngle - (betaAngle / 2)) * 60;
         const betaTextY = Math.sin(betaAngle - (betaAngle / 2)) * 60;
         ctx.fillText(betaText, betaTextX, betaTextY);

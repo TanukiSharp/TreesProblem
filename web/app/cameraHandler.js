@@ -12,6 +12,9 @@ export class CameraHandler extends EventTarget {
 
         this._inFrustumCount = null;
 
+        this._displayAlphaAngle = 0;
+        this._displayBetaAngle = 0;
+
         for (const point of controlPoints) {
             if (point.tags.includes(POINT_TYPE_ALPHA_START)) {
                 this._alphaStart = point;
@@ -34,6 +37,14 @@ export class CameraHandler extends EventTarget {
         this.checkPointsInFrustum();
     }
 
+    get alphaAngle() {
+        return this._displayAlphaAngle;
+    }
+
+    get betaAngle() {
+        return this._displayBetaAngle;
+    }
+
     _resetStates() {
         this._alphaStartMoveState = 'enter';
         this._betaMoveState = 'enter';
@@ -50,11 +61,11 @@ export class CameraHandler extends EventTarget {
         this._betaLength = MathUtils.distanceToOrigin(this._beta);
     }
 
-    _onAlphaStartMovedEnter(e) {
+    _onAlphaStartMovedEnter() {
         this._computeAnglesAndLengths();
     }
 
-    _onAlphaStartMovedUpdate(e) {
+    _onAlphaStartMovedUpdate() {
         const alphaStartAngle = MathUtils.computeAngle(this._alphaStart);
 
         const newBetaAngle = alphaStartAngle;
@@ -70,6 +81,12 @@ export class CameraHandler extends EventTarget {
 
     _onBetaMovedUpdate() {
         const betaAngle = MathUtils.computeAngle(this._beta);
+
+        this._displayBetaAngle = -Math.round(
+            MathUtils.radiansToDegrees(
+                MathUtils.normalizeAngle(betaAngle)
+            )
+        );
 
         const newAlphaStartAngle = betaAngle;
         const newAlphaStartX = Math.cos(newAlphaStartAngle) * this._alphaStartLength;
@@ -88,7 +105,7 @@ export class CameraHandler extends EventTarget {
             return pointAngle <= alphaStartAngle && pointAngle >= alphaEndAngle;
         }
 
-        return !(pointAngle <= alphaEndAngle && pointAngle >= alphaStartAngle);
+        return (pointAngle <= alphaEndAngle && pointAngle >= alphaStartAngle) === false;
     }
 
     checkPointsInFrustum() {
@@ -96,6 +113,8 @@ export class CameraHandler extends EventTarget {
         const alphaEndAngle = MathUtils.normalizeAngle(MathUtils.computeAngle(this._alphaEnd));
 
         const alphaAngle = MathUtils.deltaAngle(alphaStartAngle, alphaEndAngle);
+
+        this._displayAlphaAngle = Math.round(MathUtils.radiansToDegrees(alphaAngle));
 
         const realAlphaEndAngle = (alphaStartAngle - alphaAngle) % (Math.PI * 2);
 
