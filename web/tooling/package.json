@@ -1,0 +1,18 @@
+{
+    "name": "tooling",
+    "version": "0.1.0",
+    "description": "Tools needed to process the source files.",
+    "type": "module",
+    "author": "Sébastien ROBERT",
+    "license": "UNLICENSED",
+    "scripts": {
+        "prod": "rollup -c ./rollup.config.js"
+    },
+    "devDependencies": {
+        "@rollup/plugin-terser": "^0.4.1",
+        "@rollup/pluginutils": "^5.0.2",
+        "rollup": "^3.21.0",
+        "rollup-plugin-copy": "^3.4.0",
+        "rollup-plugin-delete": "^2.0.0"
+    }
+}
