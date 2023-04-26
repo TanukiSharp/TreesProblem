@@ -26,6 +26,7 @@ body {
 .root-container > .side-bar {
     height: 100%;
     display: grid;
+    grid-template-rows: 1fr auto;
     grid-column: 2;
     grid-row: 1;
     align-content: stretch;
@@ -37,10 +38,18 @@ body {
 
 .root-container > .side-bar > .property-grid-scroller {
     display: grid;
+    grid-row: 1;
     align-content: start;
     align-self: stretch;
     justify-self: stretch;
     overflow-y: scroll;
+}
+
+.root-container > .side-bar > .git-info {
+    grid-row: 2;
+    font-size: 0.8em;
+    justify-self: end;
+    margin: 2px;
 }
 
 .root-container > .side-bar > .property-grid-scroller > .property-grid {

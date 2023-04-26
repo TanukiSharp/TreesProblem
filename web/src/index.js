@@ -8,6 +8,8 @@ import { DispatchTreeGenerator } from './app/treeGenerators/dispatchTreeGenerato
 import { CircleTreeGenerator } from './app/treeGenerators/circleTreeGenerator.js';
 import { Ui } from './app/ui.js';
 
+const COMMITHASH = '?';
+
 const treeGenerators = [];
 
 const generatorToDropdownInfo = function(generator) {
@@ -137,6 +139,9 @@ const setupPropertyGrid = function(propertyGrid, pointsManager, cameraHandler, c
 }
 
 const main = function() {
+    const gitInfo = document.querySelector('.root-container > .side-bar > .git-info');
+    gitInfo.innerText = COMMITHASH.substring(0, 9);
+
     const canvasElement = document.querySelector('.root-container > canvas.render');
     const propertyGridElement = document.querySelector('.root-container > .side-bar > .property-grid-scroller > .property-grid');
 

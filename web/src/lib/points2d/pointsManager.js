@@ -91,14 +91,14 @@ export class PointsManager extends EventTarget {
         return Math.sqrt(PointsManager.computeSquaredDistance(x1, y1, x2, y2));
     }
 
-    _findPointAt(x, y, radiusType) {
+    _findPointAt(x, y) {
         let bestPoint = null;
         let minDistance = -1;
 
         for (const point of this.points) {
             const distance = PointsManager.computeDistance(point.x, point.y, x, y);
 
-            if (distance > point[radiusType]) {
+            if (distance > point.radius) {
                 continue;
             }
 
@@ -139,7 +139,7 @@ export class PointsManager extends EventTarget {
         this._pointerDownX = e.tx;
         this._pointerDownY = e.ty;
 
-        this._pointAtPointerDown = this._findPointAt(e.tx, e.ty, 'radius');
+        this._pointAtPointerDown = this._findPointAt(e.tx, e.ty);
 
         if (this._pointAtPointerDown !== null) {
             this._pointAtPointerDown._isPointerDown = true;
@@ -204,7 +204,7 @@ export class PointsManager extends EventTarget {
         }
 
         if (this._hoveredPoint === null) {
-            const closestPoint = this._findPointAt(e.tx, e.ty, 'radius');
+            const closestPoint = this._findPointAt(e.tx, e.ty);
 
             if (closestPoint !== null && closestPoint.isHoverable) {
                 this._hoveredPoint = closestPoint;
