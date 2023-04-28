@@ -18,7 +18,7 @@ cd web/tooling
 Compress-Archive -Path ../dist/* -DestinationPath dist.zip -Force
 az webapp deploy --resource-group trees-problem_group --name trees-problem --type zip --src-path ./dist.zip
 # Optionally.
-rm -f ./dist.zip
+rm ./dist.zip
 ```
 
 For some reason, when zipping with `zip` command on Ubuntu in WSL2, it produces an empty/invalid ZIP file.<br/>
