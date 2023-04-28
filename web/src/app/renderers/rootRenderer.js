@@ -19,6 +19,9 @@ export class RootRenderer {
         ];
 
         this._requestRender();
+
+        canvas.width = canvas.clientWidth;
+        canvas.height = canvas.clientHeight;
     }
 
     _render() {

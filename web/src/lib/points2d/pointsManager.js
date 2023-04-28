@@ -38,6 +38,14 @@ export class PointsManager extends EventTarget {
         this._interactor.addEventListener('cancelled', e => this._onCancelled(e.detail));
     }
 
+    setNewPoints(points) {
+        this.points = points;
+
+        for (const point of points) {
+            this.movePoint(point, point.x, point.y);
+        }
+    }
+
     _movePoint(p, x, y, sourceType) {
         p._x = this._constrainX(x);
         p._y = this._constrainY(y);

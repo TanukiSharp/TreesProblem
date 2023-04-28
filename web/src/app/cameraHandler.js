@@ -6,6 +6,8 @@ export class CameraHandler extends EventTarget {
         super();
 
         this._pointsManager = pointsManager;
+        this._controlPoints = controlPoints;
+
         this._alphaStart = null;
         this._alphaEnd = null;
         this._beta = null;
@@ -15,7 +17,29 @@ export class CameraHandler extends EventTarget {
         this._displayAlphaAngle = 0;
         this._displayBetaAngle = 0;
 
-        for (const point of controlPoints) {
+        this._acquireControlPoints();
+
+        this._resetStates();
+
+        this._onAlphaStartMovedEnter();
+        this._onAlphaStartMovedUpdate();
+
+        this._onBetaMovedEnter();
+        this._onBetaMovedUpdate();
+
+        this.checkPointsInFrustum();
+    }
+
+    get alphaAngle() {
+        return this._displayAlphaAngle;
+    }
+
+    get betaAngle() {
+        return this._displayBetaAngle;
+    }
+
+    _acquireControlPoints() {
+        for (const point of this._controlPoints) {
             if (point.tags.includes(POINT_TYPE_ALPHA_START)) {
                 this._alphaStart = point;
             } else if (point.tags.includes(POINT_TYPE_ALPHA_END)) {
@@ -28,21 +52,6 @@ export class CameraHandler extends EventTarget {
         if (this._alphaStart === null || this._beta === null) {
             throw new Error('Alpha start, alpha end and/or beta point(s) is/are missing.');
         }
-
-        this._resetStates();
-
-        this._onAlphaStartMovedEnter();
-        this._onAlphaStartMovedUpdate();
-
-        this.checkPointsInFrustum();
-    }
-
-    get alphaAngle() {
-        return this._displayAlphaAngle;
-    }
-
-    get betaAngle() {
-        return this._displayBetaAngle;
     }
 
     _resetStates() {

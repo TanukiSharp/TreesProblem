@@ -66,8 +66,10 @@ const setupGeneratorPropertyGridSection = function(propertyGrid, pointsManager, 
         const treesCount = treesSliderInfo.accessor.get();
         const generatorIndex = generatorTypeDropdownInfo.accessor.get();
 
-        pointsManager.points = treeGenerators[generatorIndex].generate(treesCount);
-        pointsManager.points.push(...controlPoints);
+        const newPoints = treeGenerators[generatorIndex].generate(treesCount);
+        newPoints.push(...controlPoints);
+
+        pointsManager.setNewPoints(newPoints);
 
         cameraHandler.checkPointsInFrustum();
     };
@@ -95,6 +97,8 @@ const setupGeneratorPropertyGridSection = function(propertyGrid, pointsManager, 
     propertyGrid.add(null, 'Type:', generatorTypeDropdownInfo.element);
     propertyGrid.add(null, Ui.createSpan('Continuous gen.:', 'Continuous generation. Generates trees each time parameters change.'), continuousGenerationCheckboxInfo.element);
     propertyGrid.add(null, '', generateButtonInfo.element);
+
+    generateTrees();
 }
 
 const setupEmphasisPropertyGridSection = function(propertyGrid, cameraRenderer) {
