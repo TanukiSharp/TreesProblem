@@ -55,9 +55,11 @@ class PointRenderer {
 }
 
 export class PointsRenderer {
-    constructor(ctx, pointsManager) {
+    constructor(ctx, pointsManager, filter) {
         this._ctx = ctx;
         this._pointsManager = pointsManager;
+        this._filter = filter;
+
         this._pointRenderer = new PointRenderer(ctx);
     }
 
@@ -65,6 +67,10 @@ export class PointsRenderer {
         let renderAtLast = null;
 
         for (const point of this._pointsManager.points) {
+            if (this._filter?.(point) === false) {
+                continue;
+            }
+
             if (point.isPointerOver) {
                 renderAtLast = point;
             } else {

@@ -164,14 +164,14 @@ const main = function() {
         beta,
     ];
 
-    const pointsManager = new PointsManager(canvasElement);
+    const pointsManager = new PointsManager(canvasElement, controlPoints);
 
     const cameraHandler = new CameraHandler(pointsManager, controlPoints);
 
     pointsManager.addEventListener('pointmove', e => cameraHandler.onPointMoved(e));
     canvasElement.addEventListener('pointerup', _ => cameraHandler.onPointMovedEnd());
 
-    const rootRenderer = new RootRenderer(canvasElement, pointsManager, controlPoints);
+    const rootRenderer = new RootRenderer(canvasElement, pointsManager);
 
     setupPropertyGrid(propertyGrid, pointsManager, cameraHandler, rootRenderer.cameraRenderer, controlPoints);
 }

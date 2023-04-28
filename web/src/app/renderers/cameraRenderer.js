@@ -2,7 +2,7 @@ import { POINT_TYPE_ALPHA_START, POINT_TYPE_ALPHA_END, POINT_TYPE_BETA } from '.
 import { MathUtils } from '../mathUtils.js';
 
 export class CameraRenderer {
-    constructor(ctx, controlPoints) {
+    constructor(ctx, pointsManager) {
         this._ctx = ctx;
 
         this._emphasisColor = null;
@@ -13,7 +13,7 @@ export class CameraRenderer {
         this._alphaEnd = null;
         this._beta = null;
 
-        for (const point of controlPoints) {
+        for (const point of pointsManager.points) {
             if (point.tags.includes(POINT_TYPE_ALPHA_START)) {
                 this._alphaStart = point;
             } else if (point.tags.includes(POINT_TYPE_ALPHA_END)) {

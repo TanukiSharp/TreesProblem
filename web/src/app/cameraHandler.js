@@ -2,11 +2,10 @@ import { POINT_TYPE_ALPHA_START, POINT_TYPE_ALPHA_END, POINT_TYPE_TREE, POINT_TY
 import { MathUtils } from './mathUtils.js';
 
 export class CameraHandler extends EventTarget {
-    constructor(pointsManager, controlPoints) {
+    constructor(pointsManager) {
         super();
 
         this._pointsManager = pointsManager;
-        this._controlPoints = controlPoints;
 
         this._alphaStart = null;
         this._alphaEnd = null;
@@ -39,7 +38,7 @@ export class CameraHandler extends EventTarget {
     }
 
     _acquireControlPoints() {
-        for (const point of this._controlPoints) {
+        for (const point of this._pointsManager.points) {
             if (point.tags.includes(POINT_TYPE_ALPHA_START)) {
                 this._alphaStart = point;
             } else if (point.tags.includes(POINT_TYPE_ALPHA_END)) {

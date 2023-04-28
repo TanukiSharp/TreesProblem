@@ -1,20 +1,22 @@
+import { POINT_TYPE_TREE } from '../constants.js';
 import { CameraRenderer } from './cameraRenderer.js';
 import { PointsRenderer } from './pointsRenderer.js';
 import { GridRenderer } from '../../lib/points2d/renderers/gridRenderer.js';
 import { LassoSelectionRenderer } from '../../lib/points2d/renderers/selectionRenderer.js';
 
 export class RootRenderer {
-    constructor(canvas, pointsManager, controlPoints) {
+    constructor(canvas, pointsManager) {
         const ctx = canvas.getContext('2d');
 
         this._ctx = ctx;
 
-        this.cameraRenderer = new CameraRenderer(ctx, controlPoints);
+        this.cameraRenderer = new CameraRenderer(ctx, pointsManager);
 
         this._renderers = [
             new GridRenderer(ctx),
-            new PointsRenderer(ctx, pointsManager),
+            new PointsRenderer(ctx, pointsManager, p => p.tags.includes(POINT_TYPE_TREE)),
             this.cameraRenderer,
+            new PointsRenderer(ctx, pointsManager, p => p.tags.includes(POINT_TYPE_TREE) === false),
             new LassoSelectionRenderer(ctx, pointsManager),
         ];
 
