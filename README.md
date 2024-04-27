@@ -1,26 +1,21 @@
 # Overview
 
-This is a logical problem we ask in interviews.
+This is a logical problem we used to ask in tech interviews.
 
-## Build
+The question is as follow:
 
-```sh
-cd web/tooling
-nvm use
-npm install
-npm run build
-```
+You are given:
+- The number of trees N.
+- Their positions X and Y.
+- The Alpha angle.
 
-## Publish
+You are at the center of the forest.
 
-```psh
-cd web/tooling
-Compress-Archive -Path ../dist/* -DestinationPath dist.zip -Force
-az webapp deploy --resource-group trees-problem_group --name trees-problem --type zip --src-path ./dist.zip
-# Optionally.
-rm ./dist.zip
-```
+Find a fast algorithm that gives the Beta angle for which, it is guaranteed the field of view contains the maximum amount of trees.
 
-For some reason, when zipping with `zip` command on Ubuntu in WSL2, it produces an empty/invalid ZIP file.<br/>
-`7zip` was too complicated to get something simple done.<br/>
-Fuck them both.
+Explain your algorithm, then give and explain the complexity of the algorithm.
+
+Here are some clarifications:
+- The the forest is infinitely sized, therefore an infinitely far tree is still visible. (imagine you have an orthographic camera)
+- Perfectly aligned trees do not hide each others.
+- You have 30 minutes.
